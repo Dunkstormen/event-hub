@@ -19,6 +19,7 @@ The first release targets:
 - [MVP scope](docs/product/mvp-scope.md)
 - [Architecture decision records](docs/architecture/decisions/)
 - [API v1 conventions](docs/api/v1-conventions.md)
+- [Local MySQL and migration workflow](docs/development/database.md)
 - [Delivery board](https://github.com/users/Dunkstormen/projects/2/views/2)
 
 ## Workspace
@@ -30,6 +31,7 @@ from their shared contracts and tooling:
 - `apps/api` — Fastify public API.
 - `packages/contracts` — shared versioned API contracts.
 - `packages/config` — shared project and runtime defaults.
+- `packages/database` — Prisma schema, migrations, client, and seed workflow.
 - `packages/typescript-config` — shared TypeScript compiler settings.
 
 Install Node.js 24 and pnpm 11, then run:

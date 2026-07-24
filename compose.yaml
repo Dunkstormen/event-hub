@@ -1,0 +1,49 @@
+name: event-hub
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: event_hub
+      MYSQL_PASSWORD: event_hub
+      MYSQL_ROOT_PASSWORD: event_hub_root
+      MYSQL_USER: event_hub
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping --host=127.0.0.1 --user=$${MYSQL_USER} --password=$${MYSQL_PASSWORD}",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  mysql-test:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: event_hub_test
+      MYSQL_PASSWORD: event_hub_test
+      MYSQL_ROOT_PASSWORD: event_hub_test_root
+      MYSQL_USER: event_hub_test
+    ports:
+      - "3307:3306"
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping --host=127.0.0.1 --user=$${MYSQL_USER} --password=$${MYSQL_PASSWORD}",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  mysql-data:

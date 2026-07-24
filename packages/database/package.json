@@ -1,0 +1,45 @@
+{
+  "name": "@event-hub/database",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./src/testing.ts",
+      "default": "./dist/testing.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm db:generate && tsc -p tsconfig.json",
+    "db:generate": "prisma generate",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:migrate:status": "prisma migrate status",
+    "predb:seed": "pnpm db:generate",
+    "db:seed": "prisma db seed",
+    "db:test:migrate": "tsx scripts/test-database.ts migrate",
+    "db:test:reset": "tsx scripts/test-database.ts reset",
+    "test": "vitest run",
+    "typecheck": "pnpm db:generate && tsc -p tsconfig.check.json"
+  },
+  "dependencies": {
+    "@prisma/adapter-mariadb": "7.9.0",
+    "@prisma/client": "7.9.0"
+  },
+  "devDependencies": {
+    "@event-hub/typescript-config": "workspace:*",
+    "@types/node": "24.13.3",
+    "dotenv": "17.4.2",
+    "prisma": "7.9.0",
+    "tsx": "4.23.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}
