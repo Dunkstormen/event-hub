@@ -18,6 +18,7 @@ The first release targets:
 - [System context and package boundaries](docs/architecture/system-context.md)
 - [MVP scope](docs/product/mvp-scope.md)
 - [Architecture decision records](docs/architecture/decisions/)
+- [API v1 conventions](docs/api/v1-conventions.md)
 - [Delivery board](https://github.com/users/Dunkstormen/projects/2/views/2)
 
 ## Workspace
@@ -40,7 +41,7 @@ pnpm dev:api
 ```
 
 The web app defaults to <http://localhost:3000>. The API defaults to
-<http://localhost:4000>, with its health check at `/health`. Use `API_HOST` and
+<http://localhost:4000>, with its health check at `/v1/health`. Use `API_HOST` and
 `API_PORT` to override the API listener.
 
 Run all repository checks from the workspace root:

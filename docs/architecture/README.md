@@ -28,6 +28,7 @@ Decision Records (ADRs), while unresolved choices are listed in the
 - [ADR 0002: Identity, authorization, and event ownership](decisions/0002-identity-authorization-and-event-ownership.md)
 - [ADR 0003: Event lifecycle, recurrence, and time](decisions/0003-event-lifecycle-recurrence-and-time.md)
 - [ADR 0004: Local file storage for the MVP](decisions/0004-local-file-storage.md)
+- [ADR 0005: Runtime API contracts](decisions/0005-runtime-api-contracts.md)
 - [MVP scope and deferred work](../product/mvp-scope.md)
 
 ## Domain language
