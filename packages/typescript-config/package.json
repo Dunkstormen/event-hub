@@ -1,0 +1,12 @@
+{
+  "name": "@event-hub/typescript-config",
+  "version": "0.0.0",
+  "private": true,
+  "files": ["*.json"],
+  "exports": {
+    "./base.json": "./base.json",
+    "./library.json": "./library.json",
+    "./nextjs.json": "./nextjs.json",
+    "./node.json": "./node.json"
+  }
+}

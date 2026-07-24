@@ -20,6 +20,34 @@ The first release targets:
 - [Architecture decision records](docs/architecture/decisions/)
 - [Delivery board](https://github.com/users/Dunkstormen/projects/2/views/2)
 
-The repository is in its foundation phase. The architecture documents describe
-the agreed target; application scaffolding and implementation follow in later
-issues.
+## Workspace
+
+The pnpm workspace keeps the independently deployable applications separate
+from their shared contracts and tooling:
+
+- `apps/web` — Next.js web application.
+- `apps/api` — Fastify public API.
+- `packages/contracts` — shared versioned API contracts.
+- `packages/config` — shared project and runtime defaults.
+- `packages/typescript-config` — shared TypeScript compiler settings.
+
+Install Node.js 24 and pnpm 11, then run:
+
+```bash
+pnpm install
+pnpm dev:web
+pnpm dev:api
+```
+
+The web app defaults to <http://localhost:3000>. The API defaults to
+<http://localhost:4000>, with its health check at `/health`. Use `API_HOST` and
+`API_PORT` to override the API listener.
+
+Run all repository checks from the workspace root:
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
