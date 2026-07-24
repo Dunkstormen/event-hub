@@ -47,6 +47,27 @@ const config = [
     },
     rules: {
       "@next/next/no-html-link-for-pages": "off",
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@event-hub/database",
+              message: "The web app must access persistence through the API.",
+            },
+            {
+              name: "@prisma/client",
+              message: "The web app must not import Prisma.",
+            },
+          ],
+          patterns: [
+            {
+              group: ["@event-hub/database/*", "@prisma/*"],
+              message: "The web app must access persistence through the API.",
+            },
+          ],
+        },
+      ],
     },
   },
   {

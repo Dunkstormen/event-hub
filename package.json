@@ -10,9 +10,18 @@
   },
   "scripts": {
     "build": "pnpm --recursive --if-present run build",
+    "db:down": "docker compose down",
+    "db:generate": "pnpm --filter @event-hub/database db:generate",
+    "db:migrate:deploy": "pnpm --filter @event-hub/database db:migrate:deploy",
+    "db:migrate:dev": "pnpm --filter @event-hub/database db:migrate:dev",
+    "db:seed": "pnpm --filter @event-hub/database db:seed",
+    "db:test:migrate": "pnpm --filter @event-hub/database db:test:migrate",
+    "db:test:reset": "pnpm --filter @event-hub/database db:test:reset",
+    "db:up": "docker compose up -d --wait",
     "dev:api": "pnpm --filter @event-hub/api dev",
     "dev:web": "pnpm --filter @event-hub/web dev",
     "lint": "eslint .",
+    "postinstall": "pnpm --filter @event-hub/database db:generate",
     "test": "pnpm --recursive --if-present run test",
     "typecheck": "pnpm --recursive --if-present run typecheck"
   },
