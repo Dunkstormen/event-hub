@@ -19,10 +19,13 @@ The Compose stack provides:
 | Purpose | Address | Database |
 | --- | --- | --- |
 | Development | `127.0.0.1:3306` | `event_hub` |
+| Prisma shadow | `127.0.0.1:3306` | `event_hub_shadow` |
 | Automated tests | `127.0.0.1:3307` | `event_hub_test` |
 
 Development data uses a persistent Docker volume. Test data uses an ephemeral
 in-memory filesystem and is discarded when its container is recreated.
+The Compose initialization script grants the application user access to the
+dedicated shadow database only; it does not grant database-creation privileges.
 
 Stop both containers without deleting the development volume:
 
@@ -74,10 +77,10 @@ Prisma 7 runs seeds only when explicitly requested:
 pnpm db:seed
 ```
 
-The foundation seed upserts the single VATSIM Scandinavia vACC. Idempotent FIR
-and airport reference records are introduced by issue #5. Seed implementations
-must use upsert or another repeatable operation so running the command more than
-once produces the same state.
+The seed upserts the single VATSIM Scandinavia vACC plus the initial FIR and
+airport reference records. It never removes reference records, so running it
+more than once produces the same state without breaking existing relations.
+See [reference-data.md](reference-data.md) for the seed scope and update policy.
 
 ## Test isolation
 

@@ -11,10 +11,20 @@ import {
 } from "@event-hub/contracts";
 
 import { registerErrorHandlers } from "./errors.js";
+import {
+  emptyReferenceDataRepository,
+  type ReferenceDataRepository,
+} from "./reference-data/repository.js";
+import { registerReferenceDataRoutes } from "./reference-data/routes.js";
 
-type BuildAppOptions = Pick<FastifyServerOptions, "logger">;
+type BuildAppOptions = Pick<FastifyServerOptions, "logger"> & {
+  referenceDataRepository?: ReferenceDataRepository;
+};
 
-export function buildApp({ logger = false }: BuildAppOptions = {}) {
+export function buildApp({
+  logger = false,
+  referenceDataRepository = emptyReferenceDataRepository,
+}: BuildAppOptions = {}) {
   const app = Fastify({
     logger,
     ajv: {
@@ -25,6 +35,7 @@ export function buildApp({ logger = false }: BuildAppOptions = {}) {
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   registerErrorHandlers(app);
+  registerReferenceDataRoutes(app, referenceDataRepository);
 
   app.get(
     `${API_PREFIX}/health`,

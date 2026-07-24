@@ -12,6 +12,36 @@ model Vacc {
   name      String   @db.VarChar(191)
   createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  firs      Fir[]
 
   @@map("vaccs")
+}
+
+model Fir {
+  id        String    @id @default(cuid()) @db.VarChar(30)
+  icaoCode  String    @unique @map("icao_code") @db.Char(4)
+  name      String    @db.VarChar(191)
+  active    Boolean   @default(true)
+  vaccId    String    @map("vacc_id") @db.VarChar(64)
+  vacc      Vacc      @relation(fields: [vaccId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  airports  Airport[]
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@index([vaccId, active])
+  @@map("firs")
+}
+
+model Airport {
+  id        String   @id @default(cuid()) @db.VarChar(30)
+  icaoCode  String   @unique @map("icao_code") @db.Char(4)
+  name      String   @db.VarChar(191)
+  active    Boolean  @default(true)
+  firId     String   @map("fir_id") @db.VarChar(30)
+  fir       Fir      @relation(fields: [firId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@index([firId, active])
+  @@map("airports")
 }

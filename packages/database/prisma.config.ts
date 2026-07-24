@@ -10,6 +10,8 @@ loadEnvironment({
 
 const localDevelopmentUrl =
   "mysql://event_hub:event_hub@127.0.0.1:3306/event_hub";
+const localShadowDatabaseUrl =
+  "mysql://event_hub:event_hub@127.0.0.1:3306/event_hub_shadow";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -19,5 +21,7 @@ export default defineConfig({
   },
   datasource: {
     url: process.env.DATABASE_URL ?? localDevelopmentUrl,
+    shadowDatabaseUrl:
+      process.env.SHADOW_DATABASE_URL ?? localShadowDatabaseUrl,
   },
 });
