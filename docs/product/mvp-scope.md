@@ -31,8 +31,8 @@ information.
 ### Event management
 
 - Draft creation through a multi-step flow.
-- Exactly one owning FIR at a time, with owner-only transfer and
-  owner-controlled participating-FIR invitations.
+- Exactly one owning FIR at a time, with owner-only transfer to an existing
+  participating FIR and owner-controlled participating-FIR invitations.
 - Participating airports, descriptions, banners, briefings, resources, and
   mandatory routings.
 - Publish, cancel, automatic archive, and safe deletion behavior.
@@ -89,7 +89,7 @@ resolve them before relying on an assumption.
 
 | Decision | Why it matters | Resolve before |
 | --- | --- | --- |
-| Must an ownership-transfer target already be an invited FIR, and what collaboration access does the former owner retain? | Owner-only transfer is confirmed, but the transfer preconditions and former-owner behavior need an explicit rule. | Event schema and collaboration implementation (#18 and #22) |
+| After ownership transfers, does the former owner remain a participating FIR or lose collaboration access? | The target must already be participating, but the former owner's resulting relationship still needs an explicit rule. | Event schema and collaboration implementation (#18 and #22) |
 | Should a cancelled published event remain publicly visible with a cancellation notice, or disappear from discovery? | Pilots may need a durable cancellation signal, while the current public API backlog assumes cancelled content is hidden. | Lifecycle and public API implementation (#23 and #24) |
 | Can an owning FIR restore a cancelled series, and under what audit rules? | This affects lifecycle transitions, notifications, and remote integrations. | Lifecycle implementation (#23) |
 | Which edits remain legal after publication, especially schedule and recurrence changes? | Schedule changes can invalidate reminders, rosters, and materialized occurrences. | Event and recurrence implementation (#23 and #29) |

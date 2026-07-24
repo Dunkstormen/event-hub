@@ -53,10 +53,11 @@ An authorized coordinator override requires a reason and is audited.
 ### Event ownership and invited FIRs
 
 Every event series has exactly one owning FIR at a time. Only coordinators from
-that FIR may initiate an explicit ownership transfer. A transfer must be
-transactional and audited so the event never has zero or multiple owners.
-Inviting a participating FIR grants all Event Coordinators in that FIR the MVP
-collaboration capabilities. No acceptance step is required in the MVP.
+that FIR may initiate an explicit ownership transfer, and the target FIR must
+already be participating in the event. A transfer must be transactional and
+audited so the event never has zero or multiple owners. Inviting a participating
+FIR grants all Event Coordinators in that FIR the MVP collaboration
+capabilities. No acceptance step is required in the MVP.
 
 | Capability | Owning FIR coordinator | Invited FIR coordinator | Other FIR coordinator |
 | --- | ---: | ---: | ---: |
@@ -79,6 +80,8 @@ Historical audit records and actions remain attributable.
 - The API must not trust FIR or role claims supplied by the browser.
 - Inviting a FIR is a security-sensitive write and must be audited.
 - Ownership transfer is a separate owner-only action and must be audited.
+- Ownership transfer cannot be used to bypass the participating-FIR invitation
+  workflow.
 - External eligibility data needs freshness and provenance.
 - The role matrix needs protected administrator semantics.
 

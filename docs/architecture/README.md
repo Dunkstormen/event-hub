@@ -36,7 +36,7 @@ Decision Records (ADRs), while unresolved choices are listed in the
 | --- | --- |
 | vACC | The single VATSIM Scandinavia organization served by the MVP. |
 | FIR | A permission and event-management scope identified by its ICAO code. |
-| Owning FIR | The one FIR currently responsible for an event series. It cannot be removed or replaced by an invited FIR; only its own coordinators may initiate an ownership transfer. |
+| Owning FIR | The one FIR currently responsible for an event series. It cannot be removed or replaced by an invited FIR; only its own coordinators may transfer ownership, and only to an existing participating FIR. |
 | Participating FIR | A FIR invited by the owning FIR to collaborate on an event in the MVP. |
 | Event Coordinator | A user with event-management permissions scoped to one or more FIRs. |
 | Controller | A capability derived from controller eligibility data or an audited manual assignment, not a permanently assumed global role. |
