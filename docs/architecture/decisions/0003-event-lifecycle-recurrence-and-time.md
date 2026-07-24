@@ -40,12 +40,14 @@ must be deterministic and idempotent.
 | --- | --- | --- |
 | Draft | Hidden | Owning and invited FIR coordinators can work within their permissions. |
 | Published | Public | Editable only through allowed, audited workflows. |
-| Cancelled | Not considered upcoming; public cancellation presentation remains an open decision | Owning FIR controls series cancellation; occurrence cancellation follows the override policy. |
+| Cancelled | A previously published event remains publicly discoverable with a prominent cancellation notice and required reason until it archives. | Owning FIR controls series cancellation; occurrence cancellation follows the override policy. Rostering and active-event actions are closed. |
 | Archived | Hidden from public discovery | Visible to authorized coordinators for history and locked against further edits. |
 
-A single non-recurring event archives after its end. A recurring series archives
-after its final non-cancelled occurrence has ended. Archival is automatic and
-idempotent.
+A single non-recurring event archives after its scheduled end, including when
+it was cancelled. A recurring series archives after the scheduled end of its
+final occurrence. Cancellation does not accelerate archival because the public
+cancellation notice must remain available through the time pilots would have
+expected the event to occur. Archival is automatic and idempotent.
 
 Hard deletion is restricted to workflows that do not erase published history
 improperly. The exact draft deletion and retention rules are an open decision.
@@ -67,9 +69,11 @@ An occurrence inherits all series values unless an allowed override exists.
 | Mandatory routings | Yes |
 | Roster configuration and assignments | Yes |
 
-An occurrence cancellation does not cancel the series. Cancelled occurrences
-are excluded from upcoming-event results and job scheduling, while their
-history remains available to authorized coordinators.
+An occurrence cancellation does not cancel the series and requires a public
+reason. Cancelled occurrences remain visible in the public series schedule and
+discovery with their cancelled state and reason. They cannot accept roster
+activity, are not eligible to be featured, and do not receive ordinary
+pre-event reminders.
 
 ## Consequences
 
@@ -80,6 +84,7 @@ history remains available to authorized coordinators.
 - Series edits need a defined effect on already materialized future
   occurrences.
 - Roster and reminder jobs operate on occurrences, not only the series record.
+- Public contracts need cancellation status and reason fields.
 
 ## Follow-up work
 

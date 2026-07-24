@@ -36,6 +36,8 @@ information.
 - Participating airports, descriptions, banners, briefings, resources, and
   mandatory routings.
 - Publish, cancel, automatic archive, and safe deletion behavior.
+- Required public cancellation reasons; previously published cancellations
+  remain discoverable with a prominent notice until their scheduled archival.
 - Weekly, bi-weekly, and monthly finite recurrence.
 - Creator-selected IANA timezone with local-time recurrence across DST.
 - Per-occurrence cancellation and allowed content/roster overrides, but no
@@ -89,8 +91,6 @@ resolve them before relying on an assumption.
 
 | Decision | Why it matters | Resolve before |
 | --- | --- | --- |
-| After ownership transfers, does the former owner remain a participating FIR or lose collaboration access? | The target must already be participating, but the former owner's resulting relationship still needs an explicit rule. | Event schema and collaboration implementation (#18 and #22) |
-| Should a cancelled published event remain publicly visible with a cancellation notice, or disappear from discovery? | Pilots may need a durable cancellation signal, while the current public API backlog assumes cancelled content is hidden. | Lifecycle and public API implementation (#23 and #24) |
 | Can an owning FIR restore a cancelled series, and under what audit rules? | This affects lifecycle transitions, notifications, and remote integrations. | Lifecycle implementation (#23) |
 | Which edits remain legal after publication, especially schedule and recurrence changes? | Schedule changes can invalidate reminders, rosters, and materialized occurrences. | Event and recurrence implementation (#23 and #29) |
 | How should monthly recurrence handle a day missing from a month? | Skipping, clamping to month-end, and rejecting the rule produce different series. | Recurrence implementation (#29) |
