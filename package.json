@@ -1,0 +1,27 @@
+{
+  "name": "event-hub",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Event management for VATSIM Scandinavia",
+  "packageManager": "pnpm@11.15.1",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "build": "pnpm --recursive --if-present run build",
+    "dev:api": "pnpm --filter @event-hub/api dev",
+    "dev:web": "pnpm --filter @event-hub/web dev",
+    "lint": "eslint .",
+    "test": "pnpm --recursive --if-present run test",
+    "typecheck": "pnpm --recursive --if-present run typecheck"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.2.11",
+    "globals": "17.7.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.65.0"
+  }
+}

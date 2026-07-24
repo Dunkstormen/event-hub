@@ -1,0 +1,12 @@
+packages:
+  - apps/*
+  - packages/*
+
+nodeVersion: 24.18.0
+engineStrict: true
+strictPeerDependencies: true
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
