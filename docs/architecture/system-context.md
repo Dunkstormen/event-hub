@@ -102,7 +102,7 @@ A package should be introduced when its first consumer exists.
 ### Shared contracts
 
 - Define versioned request, response, pagination, and error shapes.
-- Include runtime validation; the exact schema library is selected in issue #3.
+- Use TypeBox schemas for runtime validation and inferred TypeScript types.
 - Contain no database models, React components, secrets, or provider payload
   types.
 - Make breaking changes through a new API version or an explicitly documented

@@ -1,31 +1,43 @@
 import Fastify, { type FastifyServerOptions } from "fastify";
+import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 
-import { API_VERSION, type HealthResponse } from "@event-hub/contracts";
+import {
+  API_ERROR_RESPONSE_SCHEMAS,
+  API_PREFIX,
+  API_VERSION,
+  HealthQuerySchema,
+  HealthResponseSchema,
+  type HealthResponse,
+} from "@event-hub/contracts";
+
+import { registerErrorHandlers } from "./errors.js";
 
 type BuildAppOptions = Pick<FastifyServerOptions, "logger">;
 
 export function buildApp({ logger = false }: BuildAppOptions = {}) {
-  const app = Fastify({ logger });
+  const app = Fastify({
+    logger,
+    ajv: {
+      customOptions: {
+        removeAdditional: false,
+      },
+    },
+  }).withTypeProvider<TypeBoxTypeProvider>();
 
-  app.get<{ Reply: HealthResponse }>(
-    "/health",
+  registerErrorHandlers(app);
+
+  app.get(
+    `${API_PREFIX}/health`,
     {
       schema: {
+        querystring: HealthQuerySchema,
         response: {
-          200: {
-            type: "object",
-            additionalProperties: false,
-            required: ["status", "service", "version"],
-            properties: {
-              status: { const: "ok" },
-              service: { const: "event-hub-api" },
-              version: { const: API_VERSION },
-            },
-          },
+          200: HealthResponseSchema,
+          ...API_ERROR_RESPONSE_SCHEMAS,
         },
       },
     },
-    async () => ({
+    async (): Promise<HealthResponse> => ({
       status: "ok",
       service: "event-hub-api",
       version: API_VERSION,
