@@ -20,6 +20,7 @@ The first release targets:
 - [Architecture decision records](docs/architecture/decisions/)
 - [API v1 conventions](docs/api/v1-conventions.md)
 - [Local MySQL and migration workflow](docs/development/database.md)
+- [FIR and airport reference data](docs/development/reference-data.md)
 - [Delivery board](https://github.com/users/Dunkstormen/projects/2/views/2)
 
 ## Workspace

@@ -5,9 +5,12 @@ import { describe, expect, it } from "vitest";
 import {
   API_PREFIX,
   API_VERSION,
+  AirportListResponseSchema,
   ApiErrorResponseSchema,
   DEFAULT_PAGE_SIZE,
+  FirSchema,
   HealthResponseSchema,
+  IcaoCodeSchema,
   MAX_PAGE_SIZE,
   PaginationQuerySchema,
   listQuerySchema,
@@ -82,6 +85,41 @@ describe("API contracts", () => {
     expect(
       Value.Check(schema, {
         items: [{ id: "event-1" }],
+        pageInfo: {
+          hasNextPage: false,
+          nextCursor: null,
+        },
+      }),
+    ).toBe(true);
+  });
+
+  it("accepts only canonical uppercase ICAO codes", () => {
+    expect(Value.Check(IcaoCodeSchema, "EKDK")).toBe(true);
+    expect(Value.Check(IcaoCodeSchema, "ekdk")).toBe(false);
+    expect(Value.Check(IcaoCodeSchema, "EKD")).toBe(false);
+    expect(
+      Value.Check(FirSchema, {
+        icaoCode: "EKDK",
+        name: "Copenhagen FIR",
+        active: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("describes airport lookup results with their FIR", () => {
+    expect(
+      Value.Check(AirportListResponseSchema, {
+        items: [
+          {
+            icaoCode: "EKCH",
+            name: "Copenhagen/Kastrup",
+            active: true,
+            fir: {
+              icaoCode: "EKDK",
+              name: "Copenhagen FIR",
+            },
+          },
+        ],
         pageInfo: {
           hasNextPage: false,
           nextCursor: null,

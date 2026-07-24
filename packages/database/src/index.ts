@@ -4,6 +4,13 @@ import { PrismaClient } from "./generated/prisma/client.js";
 import { parseMySqlDatabaseUrl } from "./url.js";
 
 export { Prisma, PrismaClient } from "./generated/prisma/client.js";
+export {
+  INITIAL_AIRPORTS,
+  INITIAL_FIRS,
+  VATSIM_SCANDINAVIA_VACC,
+  type AirportSeedRecord,
+  type FirSeedRecord,
+} from "./reference-data.js";
 
 export function createDatabaseClient(databaseUrl: string) {
   parseMySqlDatabaseUrl(databaseUrl);
