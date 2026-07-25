@@ -11,6 +11,7 @@ export {
   type AirportSeedRecord,
   type FirSeedRecord,
 } from "./reference-data.js";
+export { seedReferenceData } from "./seed.js";
 
 export function createDatabaseClient(databaseUrl: string) {
   parseMySqlDatabaseUrl(databaseUrl);

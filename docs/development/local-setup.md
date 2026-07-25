@@ -209,8 +209,15 @@ root, repository root, a symbolic link, or any path below `apps/web/public`.
 Run the same local quality gates expected in CI:
 
 ```bash
+pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm db:test:migrate
+pnpm test:integration
 pnpm build
 ```
+
+The ordinary test command is database-free. The integration command uses only
+the guarded `TEST_DATABASE_URL`; see [testing.md](testing.md) for the suite
+boundaries and CI behavior.
