@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiErrorResponseSchema } from "@event-hub/contracts";
 
 import { buildApp } from "./app.js";
+import type { SessionLifecycle } from "./auth/routes.js";
 import type { ReferenceDataRepository } from "./reference-data/repository.js";
 
 const apps: ReturnType<typeof buildApp>[] = [];
@@ -235,5 +236,111 @@ describe("reference-data endpoints", () => {
 
     expect(lowercase.statusCode).toBe(400);
     expect(unsupported.statusCode).toBe(400);
+  });
+});
+
+describe("session endpoints", () => {
+  const sessionConfiguration = {
+    cookieName: "event_hub_id",
+    cookieSecure: false,
+    ttlSeconds: 3600,
+  } as const;
+
+  it("returns only the normalized current identity", async () => {
+    const authenticateSession = vi.fn(async () => ({
+      user: {
+        cid: "1234567",
+        displayName: "Ada Lovelace",
+      },
+      expiresAt: "2026-07-25T13:00:00.000Z",
+    }));
+    const sessionLifecycle: SessionLifecycle = {
+      authenticateSession,
+      revokeSession: vi.fn(async () => {}),
+    };
+    const app = buildApp({ sessionConfiguration, sessionLifecycle });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/auth/session",
+      headers: {
+        cookie: `event_hub_id=${"A".repeat(43)}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(response.json()).toEqual({
+      user: {
+        cid: "1234567",
+        displayName: "Ada Lovelace",
+      },
+      expiresAt: "2026-07-25T13:00:00.000Z",
+    });
+    expect(authenticateSession).toHaveBeenCalledWith("A".repeat(43));
+  });
+
+  it("rejects and clears an invalid or expired session", async () => {
+    const app = buildApp({
+      sessionConfiguration,
+      sessionLifecycle: {
+        authenticateSession: vi.fn(async () => null),
+        revokeSession: vi.fn(async () => {}),
+      },
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/v1/auth/session",
+      headers: {
+        cookie: `event_hub_id=${"A".repeat(43)}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toMatchObject({
+      error: {
+        code: "AUTHENTICATION_REQUIRED",
+      },
+    });
+    expect(response.headers["set-cookie"]).toContain(
+      "event_hub_id=; Max-Age=0;",
+    );
+    expect(response.headers["set-cookie"]).toContain(
+      "Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax",
+    );
+  });
+
+  it("revokes the server session and clears its cookie on logout", async () => {
+    const revokeSession = vi.fn(async () => {});
+    const app = buildApp({
+      sessionConfiguration,
+      sessionLifecycle: {
+        authenticateSession: vi.fn(async () => null),
+        revokeSession,
+      },
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: "DELETE",
+      url: "/v1/auth/session",
+      headers: {
+        cookie: `event_hub_id=${"A".repeat(43)}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(response.body).toBe("");
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(response.headers["set-cookie"]).toContain(
+      "event_hub_id=; Max-Age=0;",
+    );
+    expect(response.headers["set-cookie"]).toContain(
+      "Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax",
+    );
+    expect(revokeSession).toHaveBeenCalledWith("A".repeat(43));
   });
 });

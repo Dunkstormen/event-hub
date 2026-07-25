@@ -1,10 +1,17 @@
 import { loadEnvFile } from "node:process";
 import { fileURLToPath } from "node:url";
 
-import { DEFAULT_API_HOST, DEFAULT_API_PORT, parsePort } from "@event-hub/config/server";
+import {
+  DEFAULT_API_HOST,
+  DEFAULT_API_PORT,
+  parsePort,
+} from "@event-hub/config/server";
+import { parseSessionConfiguration } from "@event-hub/config/session";
 import { createDatabaseClient } from "@event-hub/database";
 
 import { buildApp } from "./app.js";
+import { createIdentitySessionRepository } from "./auth/repository.js";
+import { SessionService } from "./auth/session-service.js";
 import { createReferenceDataRepository } from "./reference-data/repository.js";
 
 try {
@@ -25,9 +32,16 @@ if (databaseUrl === undefined || databaseUrl.trim() === "") {
 }
 
 const database = createDatabaseClient(databaseUrl);
+const sessionConfiguration = parseSessionConfiguration(process.env);
+const sessionService = new SessionService(
+  createIdentitySessionRepository(database),
+  { ttlSeconds: sessionConfiguration.ttlSeconds },
+);
 const app = buildApp({
   logger: true,
   referenceDataRepository: createReferenceDataRepository(database),
+  sessionConfiguration,
+  sessionLifecycle: sessionService,
 });
 
 app.addHook("onClose", async () => {
