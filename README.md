@@ -21,6 +21,7 @@ The first release targets:
 - [API v1 conventions](docs/api/v1-conventions.md)
 - [Complete local developer setup](docs/development/local-setup.md)
 - [Local MySQL and migration workflow](docs/development/database.md)
+- [Testing and continuous integration](docs/development/testing.md)
 - [FIR and airport reference data](docs/development/reference-data.md)
 - [Delivery board](https://github.com/users/Dunkstormen/projects/2/views/2)
 
@@ -68,8 +69,14 @@ The web app defaults to <http://localhost:3000>. The API defaults to
 Run all repository checks from the workspace root:
 
 ```bash
+pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm test:integration
 pnpm build
 ```
+
+The integration suite requires the isolated test database. See the
+[testing guide](docs/development/testing.md) for the complete local and CI
+workflow.

@@ -20,10 +20,12 @@
     "db:up": "docker compose up -d --wait",
     "dev:api": "pnpm --filter @event-hub/api dev",
     "dev:web": "pnpm --filter @event-hub/web dev",
+    "format:check": "node scripts/check-formatting.mjs",
     "lint": "eslint .",
     "postinstall": "pnpm --filter @event-hub/database db:generate",
     "storage:prepare": "node scripts/prepare-local-storage.mjs",
     "test": "pnpm --recursive --if-present run test",
+    "test:integration": "pnpm --filter @event-hub/api test:integration",
     "typecheck": "pnpm --recursive --if-present run typecheck"
   },
   "devDependencies": {
