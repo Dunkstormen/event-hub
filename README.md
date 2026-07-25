@@ -19,6 +19,7 @@ The first release targets:
 - [MVP scope](docs/product/mvp-scope.md)
 - [Architecture decision records](docs/architecture/decisions/)
 - [API v1 conventions](docs/api/v1-conventions.md)
+- [Complete local developer setup](docs/development/local-setup.md)
 - [Local MySQL and migration workflow](docs/development/database.md)
 - [FIR and airport reference data](docs/development/reference-data.md)
 - [Delivery board](https://github.com/users/Dunkstormen/projects/2/views/2)
@@ -35,11 +36,28 @@ from their shared contracts and tooling:
 - `packages/database` — Prisma schema, migrations, client, and seed workflow.
 - `packages/typescript-config` — shared TypeScript compiler settings.
 
-Install Node.js 24 and pnpm 11, then run:
+Install Node.js 24, pnpm 11, and Docker Compose. The complete platform-specific
+instructions and environment-variable reference are in the
+[local developer setup guide](docs/development/local-setup.md).
+
+The abbreviated first-time flow is:
 
 ```bash
-pnpm install
+cp .env.example .env
+pnpm install --frozen-lockfile
+pnpm storage:prepare
+pnpm db:up
+pnpm db:migrate:deploy
+pnpm db:seed
+```
+
+Then run the applications in separate terminals:
+
+```bash
 pnpm dev:web
+```
+
+```bash
 pnpm dev:api
 ```
 
