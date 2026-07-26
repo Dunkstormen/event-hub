@@ -55,4 +55,6 @@ export const API_ERROR_RESPONSE_SCHEMAS = {
   415: ApiErrorResponseSchema,
   429: ApiErrorResponseSchema,
   500: ApiErrorResponseSchema,
+  502: ApiErrorResponseSchema,
+  503: ApiErrorResponseSchema,
 } as const;

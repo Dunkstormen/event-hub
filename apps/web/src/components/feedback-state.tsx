@@ -30,6 +30,7 @@ type FeedbackStateProps = Readonly<{
   description?: string;
   action?: ReactNode;
   className?: string;
+  stackActionOnMobile?: boolean;
 }>;
 
 export function FeedbackState({
@@ -38,6 +39,7 @@ export function FeedbackState({
   description,
   action,
   className,
+  stackActionOnMobile = false,
 }: FeedbackStateProps) {
   if (kind === "loading") {
     return (
@@ -68,6 +70,8 @@ export function FeedbackState({
       <Empty
         className={cn(
           "min-h-36 flex-row justify-start border bg-card/35 text-left",
+          stackActionOnMobile &&
+            "max-sm:flex-col max-sm:items-stretch",
           className,
         )}
       >
@@ -84,7 +88,13 @@ export function FeedbackState({
           ) : null}
         </EmptyHeader>
         {action ? (
-          <EmptyContent className="ml-auto w-auto items-end">
+          <EmptyContent
+            className={cn(
+              "ml-auto w-auto items-end",
+              stackActionOnMobile &&
+                "max-sm:ml-0 max-sm:w-full max-sm:items-stretch",
+            )}
+          >
             {action}
           </EmptyContent>
         ) : null}

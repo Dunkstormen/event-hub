@@ -1,6 +1,7 @@
 {
   "extends": "@event-hub/typescript-config/library.json",
   "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
     "outDir": "dist",
     "rootDir": "src"
   },

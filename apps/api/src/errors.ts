@@ -40,6 +40,8 @@ const statusCodes = new Map<number, ApiErrorCode>([
   [413, "PAYLOAD_TOO_LARGE"],
   [415, "UNSUPPORTED_MEDIA_TYPE"],
   [429, "RATE_LIMITED"],
+  [502, "INTERNAL_ERROR"],
+  [503, "INTERNAL_ERROR"],
 ]);
 
 function validationDetails(error: FastifyError): ApiErrorDetail[] {

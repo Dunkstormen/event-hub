@@ -16,6 +16,10 @@
     "./session": {
       "types": "./src/session.ts",
       "default": "./dist/session.js"
+    },
+    "./vatsim-connect": {
+      "types": "./src/vatsim-connect.ts",
+      "default": "./dist/vatsim-connect.js"
     }
   },
   "scripts": {
