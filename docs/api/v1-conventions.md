@@ -102,6 +102,18 @@ than role names or browser claims. Missing sessions return
 `401 AUTHENTICATION_REQUIRED`; authenticated users without the capability
 receive `403 FORBIDDEN`.
 
+The same API-owned policy evaluator is the enforcement unit for all protected
+routes. It distinguishes global grants from grants tied to an explicit active
+FIR, derives current controller access from fresh provider evidence and active
+memberships, and returns no authorization for disabled users. Reusable guards
+translate missing authentication and denied permissions into this document's
+standard error envelope.
+
+Public event reads use an explicit policy decision. Anonymous requests may read
+published public content only. Non-public event reads require
+`events.manage` in the owning FIR; future invited-FIR collaboration is added to
+that decision rather than inferred from browser claims or ICAO prefixes.
+
 Role, capability, and assignment writes use serializable transactions and
 produce an audit record in the same commit. Scope conflicts return
 `400 BAD_REQUEST`; protected-role, in-use-role, duplicate-key, and last-admin

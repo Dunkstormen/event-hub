@@ -1,6 +1,5 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 
-import type { SessionConfiguration } from "@event-hub/config/session";
 import {
   API_ERROR_RESPONSE_SCHEMAS,
   API_PREFIX,
@@ -9,8 +8,9 @@ import {
   ControllerEligibilitySyncResultSchema,
   type ControllerEligibilityProviderParams,
 } from "@event-hub/contracts";
+import { FIR_MEMBERSHIPS_MANAGE_CAPABILITY } from "@event-hub/database";
 
-import type { AuthorizationSessions } from "../authorization/routes.js";
+import type { AuthorizationApiGuard } from "../authorization/api-guard.js";
 import { ApiError } from "../errors.js";
 import {
   type ControllerEligibilityAdministration,
@@ -20,21 +20,14 @@ import {
 import { EligibilityProviderError } from "./provider.js";
 
 async function requireActor(
-  request: { cookies: Record<string, string | undefined> },
-  sessions: AuthorizationSessions,
-  configuration: SessionConfiguration,
+  request: FastifyRequest,
+  guard: AuthorizationApiGuard,
 ) {
-  const actor = await sessions.authenticateActor(
-    request.cookies[configuration.cookieName],
+  return guard.requireGlobal(
+    request,
+    FIR_MEMBERSHIPS_MANAGE_CAPABILITY,
+    "You cannot manage controller eligibility synchronization.",
   );
-  if (actor === null) {
-    throw new ApiError(
-      401,
-      "AUTHENTICATION_REQUIRED",
-      "Authentication is required.",
-    );
-  }
-  return actor;
 }
 
 function translateError(error: unknown): never {
@@ -61,8 +54,7 @@ function translateError(error: unknown): never {
 export function registerControllerEligibilityRoutes(
   app: FastifyInstance,
   administration: ControllerEligibilityAdministration,
-  sessions: AuthorizationSessions,
-  configuration: SessionConfiguration,
+  guard: AuthorizationApiGuard,
 ) {
   app.get(
     `${API_PREFIX}/admin/controller-eligibility`,
@@ -76,7 +68,7 @@ export function registerControllerEligibilityRoutes(
     },
     async (request, reply) => {
       reply.header("Cache-Control", "no-store");
-      const actor = await requireActor(request, sessions, configuration);
+      const actor = await requireActor(request, guard);
       try {
         return await administration.getStatus(actor.id);
       } catch (error) {
@@ -97,7 +89,7 @@ export function registerControllerEligibilityRoutes(
       },
     },
     async (request) => {
-      const actor = await requireActor(request, sessions, configuration);
+      const actor = await requireActor(request, guard);
       try {
         return await administration.synchronize(
           actor.id,

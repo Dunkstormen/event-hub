@@ -1,6 +1,5 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 
-import type { SessionConfiguration } from "@event-hub/config/session";
 import {
   API_ERROR_RESPONSE_SCHEMAS,
   API_PREFIX,
@@ -14,9 +13,10 @@ import {
   type FirMembershipUsersQuery,
   type ManualFirMembershipChange,
 } from "@event-hub/contracts";
+import { FIR_MEMBERSHIPS_MANAGE_CAPABILITY } from "@event-hub/database";
 
-import type { AuthorizationSessions } from "./routes.js";
 import { ApiError } from "../errors.js";
+import type { AuthorizationApiGuard } from "./api-guard.js";
 import {
   type FirMembershipAdministration,
   FirMembershipDeniedError,
@@ -68,32 +68,20 @@ function translateMembershipError(error: unknown): never {
 }
 
 async function requireActor(
-  request: {
-    cookies: Record<string, string | undefined>;
-  },
-  sessions: AuthorizationSessions,
-  configuration: SessionConfiguration,
+  request: FastifyRequest,
+  guard: AuthorizationApiGuard,
 ) {
-  const actor = await sessions.authenticateActor(
-    request.cookies[configuration.cookieName],
+  return guard.requireGlobal(
+    request,
+    FIR_MEMBERSHIPS_MANAGE_CAPABILITY,
+    "You cannot manage FIR memberships.",
   );
-
-  if (actor === null) {
-    throw new ApiError(
-      401,
-      "AUTHENTICATION_REQUIRED",
-      "Authentication is required.",
-    );
-  }
-
-  return actor;
 }
 
 export function registerFirMembershipAdministrationRoutes(
   app: FastifyInstance,
   administration: FirMembershipAdministration,
-  sessions: AuthorizationSessions,
-  sessionConfiguration: SessionConfiguration,
+  guard: AuthorizationApiGuard,
 ) {
   app.get(
     `${API_PREFIX}/admin/fir-memberships`,
@@ -107,11 +95,7 @@ export function registerFirMembershipAdministrationRoutes(
     },
     async (request, reply) => {
       reply.header("Cache-Control", "no-store");
-      const actor = await requireActor(
-        request,
-        sessions,
-        sessionConfiguration,
-      );
+      const actor = await requireActor(request, guard);
 
       try {
         return await administration.getOverview(actor.id);
@@ -134,11 +118,7 @@ export function registerFirMembershipAdministrationRoutes(
     },
     async (request, reply) => {
       reply.header("Cache-Control", "no-store");
-      const actor = await requireActor(
-        request,
-        sessions,
-        sessionConfiguration,
-      );
+      const actor = await requireActor(request, guard);
       const limit = request.query.limit ?? defaultUserPageSize;
 
       try {
@@ -187,11 +167,7 @@ export function registerFirMembershipAdministrationRoutes(
       },
     },
     async (request) => {
-      const actor = await requireActor(
-        request,
-        sessions,
-        sessionConfiguration,
-      );
+      const actor = await requireActor(request, guard);
 
       try {
         return await administration.assignManual(actor.id, {
@@ -221,11 +197,7 @@ export function registerFirMembershipAdministrationRoutes(
       },
     },
     async (request) => {
-      const actor = await requireActor(
-        request,
-        sessions,
-        sessionConfiguration,
-      );
+      const actor = await requireActor(request, guard);
 
       try {
         return await administration.revokeManual(actor.id, {

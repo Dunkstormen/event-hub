@@ -18,6 +18,7 @@ import { OAuthTransactionManager } from "./auth/oauth-transaction.js";
 import { VatsimAuthenticationService } from "./auth/vatsim-authentication.js";
 import { VatsimConnectClient } from "./auth/vatsim-connect-client.js";
 import { createAuthorizationAdministration } from "./authorization/administration.js";
+import { AuthorizationPolicy } from "./authorization/policy.js";
 import { createFirMembershipAdministration } from "./authorization/fir-memberships.js";
 import { createControllerEligibilityAdministration } from "./controller-eligibility/administration.js";
 import { ControlCenterEligibilityProvider } from "./controller-eligibility/control-center-provider.js";
@@ -96,6 +97,7 @@ const vatsimAuthentication =
 const app = buildApp({
   authorizationAdministration:
     createAuthorizationAdministration(database),
+  authorizationPolicy: new AuthorizationPolicy(database),
   authorizationSessions: sessionService,
   controllerEligibilityAdministration:
     createControllerEligibilityAdministration(

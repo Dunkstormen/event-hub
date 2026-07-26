@@ -14,6 +14,10 @@ import {
   Prisma,
   SYSTEM_ADMINISTRATOR_CAPABILITY,
 } from "@event-hub/database";
+import {
+  AuthorizationPolicyDeniedError,
+  requireGlobalCapability,
+} from "./policy.js";
 
 const maximumTransactionAttempts = 4;
 const vatsimIdentityProvider = "vatsim";
@@ -120,28 +124,17 @@ async function assertAuthorizationManager(
   transaction: Prisma.TransactionClient,
   actorUserId: string,
 ) {
-  const actor = await transaction.user.findFirst({
-    where: {
-      id: actorUserId,
-      status: "ACTIVE",
-      roleAssignments: {
-        some: {
-          firId: null,
-          role: {
-            capabilities: {
-              some: {
-                capabilityKey: AUTHORIZATION_MANAGE_CAPABILITY,
-              },
-            },
-          },
-        },
-      },
-    },
-    select: { id: true },
-  });
-
-  if (actor === null) {
-    throw new AuthorizationDeniedError();
+  try {
+    await requireGlobalCapability(
+      transaction,
+      actorUserId,
+      AUTHORIZATION_MANAGE_CAPABILITY,
+    );
+  } catch (error) {
+    if (error instanceof AuthorizationPolicyDeniedError) {
+      throw new AuthorizationDeniedError();
+    }
+    throw error;
   }
 }
 

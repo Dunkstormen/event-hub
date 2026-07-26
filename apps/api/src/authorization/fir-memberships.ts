@@ -8,6 +8,10 @@ import {
   FIR_MEMBERSHIPS_MANAGE_CAPABILITY,
   Prisma,
 } from "@event-hub/database";
+import {
+  AuthorizationPolicyDeniedError,
+  requireGlobalCapability,
+} from "./policy.js";
 
 const maximumTransactionAttempts = 4;
 const vatsimIdentityProvider = "vatsim";
@@ -65,28 +69,17 @@ async function assertMembershipManager(
   transaction: Prisma.TransactionClient,
   actorUserId: string,
 ) {
-  const actor = await transaction.user.findFirst({
-    where: {
-      id: actorUserId,
-      status: "ACTIVE",
-      roleAssignments: {
-        some: {
-          firId: null,
-          role: {
-            capabilities: {
-              some: {
-                capabilityKey: FIR_MEMBERSHIPS_MANAGE_CAPABILITY,
-              },
-            },
-          },
-        },
-      },
-    },
-    select: { id: true },
-  });
-
-  if (actor === null) {
-    throw new FirMembershipDeniedError();
+  try {
+    await requireGlobalCapability(
+      transaction,
+      actorUserId,
+      FIR_MEMBERSHIPS_MANAGE_CAPABILITY,
+    );
+  } catch (error) {
+    if (error instanceof AuthorizationPolicyDeniedError) {
+      throw new FirMembershipDeniedError();
+    }
+    throw error;
   }
 }
 

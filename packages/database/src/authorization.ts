@@ -13,6 +13,9 @@ export const AUTHORIZATION_MANAGE_CAPABILITY =
   "authorization.manage";
 export const FIR_MEMBERSHIPS_MANAGE_CAPABILITY =
   "fir-memberships.manage";
+export const EVENTS_MANAGE_CAPABILITY = "events.manage";
+export const ROSTERS_MANAGE_CAPABILITY = "rosters.manage";
+export const EVENTS_PARTICIPATE_CAPABILITY = "events.participate";
 
 const vatsimCidPattern = /^[0-9]{1,16}$/u;
 
@@ -39,21 +42,21 @@ export const INITIAL_CAPABILITIES = [
     scope: "GLOBAL_ONLY",
   },
   {
-    key: "events.manage",
+    key: EVENTS_MANAGE_CAPABILITY,
     name: "Manage events",
     description:
       "Create and manage events within the effective assignment scope.",
     scope: "GLOBAL_OR_FIR",
   },
   {
-    key: "rosters.manage",
+    key: ROSTERS_MANAGE_CAPABILITY,
     name: "Manage rosters",
     description:
       "Configure and manage rosters within the effective assignment scope.",
     scope: "GLOBAL_OR_FIR",
   },
   {
-    key: "events.participate",
+    key: EVENTS_PARTICIPATE_CAPABILITY,
     name: "Participate in events",
     description:
       "Use authenticated pilot event-participation features.",
@@ -68,7 +71,7 @@ export const INITIAL_ROLES = [
     description: "Default global role for every authenticated user.",
     scope: "GLOBAL",
     protected: true,
-    capabilityKeys: ["events.participate"],
+    capabilityKeys: [EVENTS_PARTICIPATE_CAPABILITY],
   },
   {
     key: EVENT_COORDINATOR_ROLE_KEY,
@@ -77,7 +80,10 @@ export const INITIAL_ROLES = [
       "FIR-scoped event and roster management role.",
     scope: "FIR",
     protected: true,
-    capabilityKeys: ["events.manage", "rosters.manage"],
+    capabilityKeys: [
+      EVENTS_MANAGE_CAPABILITY,
+      ROSTERS_MANAGE_CAPABILITY,
+    ],
   },
   {
     key: ADMINISTRATOR_ROLE_KEY,

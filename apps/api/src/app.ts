@@ -29,6 +29,8 @@ import {
 import type { VatsimAuthenticationFlow } from "./auth/vatsim-authentication.js";
 import { registerVatsimAuthenticationRoutes } from "./auth/vatsim-routes.js";
 import type { AuthorizationAdministration } from "./authorization/administration.js";
+import { AuthorizationApiGuard } from "./authorization/api-guard.js";
+import type { AuthorizationPolicy } from "./authorization/policy.js";
 import {
   type AuthorizationSessions,
   registerAuthorizationAdministrationRoutes,
@@ -46,6 +48,7 @@ import { registerReferenceDataRoutes } from "./reference-data/routes.js";
 
 type BuildAppOptions = Pick<FastifyServerOptions, "logger"> & {
   authorizationAdministration?: AuthorizationAdministration | null;
+  authorizationPolicy?: AuthorizationPolicy | null;
   authorizationSessions?: AuthorizationSessions | null;
   controllerEligibilityAdministration?: ControllerEligibilityAdministration | null;
   firMembershipAdministration?: FirMembershipAdministration | null;
@@ -59,6 +62,7 @@ type BuildAppOptions = Pick<FastifyServerOptions, "logger"> & {
 
 export function buildApp({
   authorizationAdministration = null,
+  authorizationPolicy = null,
   authorizationSessions = null,
   controllerEligibilityAdministration = null,
   firMembershipAdministration = null,
@@ -101,37 +105,42 @@ export function buildApp({
     vatsimConnectConfiguration,
     sessionConfiguration,
   );
+  const authorizationGuard =
+    authorizationPolicy === null || authorizationSessions === null
+      ? null
+      : new AuthorizationApiGuard(
+          authorizationSessions,
+          authorizationPolicy,
+          sessionConfiguration,
+        );
   if (
     authorizationAdministration !== null &&
-    authorizationSessions !== null
+    authorizationGuard !== null
   ) {
     registerAuthorizationAdministrationRoutes(
       app,
       authorizationAdministration,
-      authorizationSessions,
-      sessionConfiguration,
+      authorizationGuard,
     );
   }
   if (
     firMembershipAdministration !== null &&
-    authorizationSessions !== null
+    authorizationGuard !== null
   ) {
     registerFirMembershipAdministrationRoutes(
       app,
       firMembershipAdministration,
-      authorizationSessions,
-      sessionConfiguration,
+      authorizationGuard,
     );
   }
   if (
     controllerEligibilityAdministration !== null &&
-    authorizationSessions !== null
+    authorizationGuard !== null
   ) {
     registerControllerEligibilityRoutes(
       app,
       controllerEligibilityAdministration,
-      authorizationSessions,
-      sessionConfiguration,
+      authorizationGuard,
     );
   }
 

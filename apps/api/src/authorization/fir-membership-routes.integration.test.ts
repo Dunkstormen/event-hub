@@ -9,6 +9,7 @@ import { requireTestDatabaseUrl } from "@event-hub/database/testing";
 
 import { buildApp } from "../app.js";
 import { createFirMembershipAdministration } from "./fir-memberships.js";
+import { AuthorizationPolicy } from "./policy.js";
 
 const database = createDatabaseClient(requireTestDatabaseUrl());
 const administration = createFirMembershipAdministration(database);
@@ -46,6 +47,7 @@ async function buildAuthorizedApp(actorUserId: string) {
       },
     },
     firMembershipAdministration: administration,
+    authorizationPolicy: new AuthorizationPolicy(database),
     sessionConfiguration,
   });
   apps.push(app);
