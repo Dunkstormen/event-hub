@@ -116,15 +116,17 @@ development defaults and empty secret placeholders. Never commit `.env`.
 | `NODE_ENV` | Production | Runtime security mode. `pnpm dev:api` forces `development`; deployed API processes must set `production`. Only explicit `development` or `test` values permit an insecure localhost session cookie; other or missing values fail secure. |
 | `API_HOST` | No | API listen address. Defaults to `0.0.0.0`. |
 | `API_PORT` | No | API TCP port. Defaults to `4000`; values must be between 1 and 65535. |
+| `NEXT_PUBLIC_API_BASE_URL` | Web sign-in | Public API origin used by the VATSIM sign-in link. The local default is `http://localhost:4000`. |
 | `SESSION_TTL_SECONDS` | No | Absolute server-side session lifetime. Defaults to 28,800 seconds (8 hours); values must be between 300 seconds and 604,800 seconds. |
 | `DATABASE_URL` | API and seed | Development MySQL URL. The example targets `event_hub` on port 3306. |
 | `SHADOW_DATABASE_URL` | Prisma development migrations | Dedicated Prisma shadow database. The local Prisma config has the same Compose-backed fallback. |
 | `TEST_DATABASE_URL` | Test database commands | Isolated MySQL URL. The database name must end in `_test`; test commands never fall back to `DATABASE_URL`. |
 | `UPLOAD_ROOT` | Storage preparation | Local persistent upload directory. Relative paths resolve from the repository root. Issue #31 will connect the storage adapter to this path. |
-| `VATSIM_CONNECT_BASE_URL` | Authentication work | OAuth server base URL. Use `https://auth-dev.vatsim.net` locally. Reserved for issue #10 and not consumed yet. |
-| `VATSIM_CONNECT_CLIENT_ID` | Authentication work | Sandbox OAuth client identifier. Leave empty until working on issue #10. |
-| `VATSIM_CONNECT_CLIENT_SECRET` | Authentication work | Sandbox OAuth client secret. It belongs only in `.env`; never place a real value in `.env.example`. |
-| `VATSIM_CONNECT_REDIRECT_URI` | Authentication work | Exact callback URI registered with the sandbox client. Reserved until issue #10 defines the callback route. |
+| `VATSIM_CONNECT_BASE_URL` | VATSIM authentication | OAuth server base URL. Use `https://auth-dev.vatsim.net` locally. HTTPS is required. |
+| `VATSIM_CONNECT_CLIENT_ID` | VATSIM authentication | Sandbox OAuth client identifier. Leaving all client values empty disables the integration. |
+| `VATSIM_CONNECT_CLIENT_SECRET` | VATSIM authentication | Sandbox OAuth client secret. It belongs only in `.env`; never place a real value in `.env.example`. |
+| `VATSIM_CONNECT_REDIRECT_URI` | VATSIM authentication | Exact callback URI registered with the OAuth client. Local default: `http://localhost:4000/v1/auth/vatsim/callback`. |
+| `VATSIM_CONNECT_SUCCESS_REDIRECT_URI` | VATSIM authentication | Trusted web URI used after a successful callback. Local default: `http://localhost:3000`; production requires HTTPS. |
 
 Production and shared environments must provide managed database, OAuth, and
 session secrets rather than reusing the local values.
@@ -144,8 +146,10 @@ in with a listed test account, open **Manage OAuth organizations**, select the
 
 Store the issued client ID and secret only in `.env`. The registered redirect
 URI and the `VATSIM_CONNECT_REDIRECT_URI` value must match exactly. The current
-application does not initiate OAuth yet; issue #10 will implement and test the
-authorization-code flow.
+application starts the authorization-code flow at
+`GET /v1/auth/vatsim`. The callback is
+`GET /v1/auth/vatsim/callback`. Automated tests use an injected provider
+adapter and never require real sandbox credentials.
 
 ## Database and data lifecycle
 

@@ -7,11 +7,15 @@ import {
   parsePort,
 } from "@event-hub/config/server";
 import { parseSessionConfiguration } from "@event-hub/config/session";
+import { parseVatsimConnectConfiguration } from "@event-hub/config/vatsim-connect";
 import { createDatabaseClient } from "@event-hub/database";
 
 import { buildApp } from "./app.js";
 import { createIdentitySessionRepository } from "./auth/repository.js";
 import { SessionService } from "./auth/session-service.js";
+import { OAuthTransactionManager } from "./auth/oauth-transaction.js";
+import { VatsimAuthenticationService } from "./auth/vatsim-authentication.js";
+import { VatsimConnectClient } from "./auth/vatsim-connect-client.js";
 import { createReferenceDataRepository } from "./reference-data/repository.js";
 
 try {
@@ -33,15 +37,27 @@ if (databaseUrl === undefined || databaseUrl.trim() === "") {
 
 const database = createDatabaseClient(databaseUrl);
 const sessionConfiguration = parseSessionConfiguration(process.env);
+const vatsimConnectConfiguration =
+  parseVatsimConnectConfiguration(process.env);
 const sessionService = new SessionService(
   createIdentitySessionRepository(database),
   { ttlSeconds: sessionConfiguration.ttlSeconds },
 );
+const vatsimAuthentication =
+  vatsimConnectConfiguration === null
+    ? null
+    : new VatsimAuthenticationService(
+        new VatsimConnectClient(vatsimConnectConfiguration),
+        sessionService,
+        new OAuthTransactionManager(),
+      );
 const app = buildApp({
   logger: true,
   referenceDataRepository: createReferenceDataRepository(database),
   sessionConfiguration,
   sessionLifecycle: sessionService,
+  vatsimAuthentication,
+  vatsimConnectConfiguration,
 });
 
 app.addHook("onClose", async () => {

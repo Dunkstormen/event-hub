@@ -63,11 +63,20 @@ The shared codes cover:
 | 415 | `UNSUPPORTED_MEDIA_TYPE` |
 | 429 | `RATE_LIMITED` |
 | 500 | `INTERNAL_ERROR` |
+| 502 | `INTERNAL_ERROR` |
+| 503 | `INTERNAL_ERROR` |
 
 Domain-specific detail codes may refine these categories without exposing
 implementation details.
 
 ## Authenticated session boundary
+
+`GET /v1/auth/vatsim` and `GET /v1/auth/vatsim/callback` implement the
+VATSIM Connect authorization-code flow. The callback accepts only the
+documented OAuth query fields, validates the browser-bound state and nonce
+transaction before token exchange, and redirects to a fixed configured web
+URI after creating the Event Hub session. Provider credentials, tokens,
+payloads, and callback details are never serialized.
 
 `GET /v1/auth/session` resolves the opaque HTTP-only session cookie and returns
 only the normalized Event Hub identity: VATSIM CID, display name, and server

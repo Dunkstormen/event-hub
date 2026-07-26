@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { LogInIcon } from "lucide-react";
 
 import { FeedbackState } from "@/components/feedback-state";
 import { SectionPage } from "@/components/section-page";
@@ -9,20 +9,27 @@ export const metadata: Metadata = {
   title: "Sign in",
 };
 
+const vatsimSignInUrl = new URL(
+  "/v1/auth/vatsim",
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000",
+).toString();
+
 export default function SignInPage() {
   return (
     <SectionPage
       title="Sign in"
-      description="Event Hub will use VATSIM Connect for secure access."
+      description="Use your VATSIM account to access Event Hub."
     >
       <FeedbackState
         kind="empty"
-        title="VATSIM Connect is not configured yet"
-        description="Authentication will become available as the identity foundation is completed."
+        title="Continue with VATSIM Connect"
+        description="You will be redirected to VATSIM to authenticate, then returned securely to Event Hub."
+        stackActionOnMobile
         action={
-          <Link href="/" className={buttonVariants({ variant: "outline" })}>
-            Return home
-          </Link>
+          <a href={vatsimSignInUrl} className={buttonVariants()}>
+            <LogInIcon data-icon="inline-start" aria-hidden="true" />
+            Sign in with VATSIM
+          </a>
         }
       />
     </SectionPage>

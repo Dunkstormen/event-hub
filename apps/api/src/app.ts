@@ -7,6 +7,10 @@ import {
   type SessionConfiguration,
 } from "@event-hub/config/session";
 import {
+  parseVatsimConnectConfiguration,
+  type VatsimConnectConfiguration,
+} from "@event-hub/config/vatsim-connect";
+import {
   API_ERROR_RESPONSE_SCHEMAS,
   API_PREFIX,
   API_VERSION,
@@ -20,6 +24,8 @@ import {
   registerSessionRoutes,
   type SessionLifecycle,
 } from "./auth/routes.js";
+import type { VatsimAuthenticationFlow } from "./auth/vatsim-authentication.js";
+import { registerVatsimAuthenticationRoutes } from "./auth/vatsim-routes.js";
 import { registerErrorHandlers } from "./errors.js";
 import {
   emptyReferenceDataRepository,
@@ -31,6 +37,8 @@ type BuildAppOptions = Pick<FastifyServerOptions, "logger"> & {
   referenceDataRepository?: ReferenceDataRepository;
   sessionConfiguration?: SessionConfiguration;
   sessionLifecycle?: SessionLifecycle;
+  vatsimAuthentication?: VatsimAuthenticationFlow | null;
+  vatsimConnectConfiguration?: VatsimConnectConfiguration | null;
 };
 
 export function buildApp({
@@ -38,6 +46,10 @@ export function buildApp({
   referenceDataRepository = emptyReferenceDataRepository,
   sessionConfiguration = parseSessionConfiguration(process.env),
   sessionLifecycle = anonymousSessionLifecycle,
+  vatsimAuthentication = null,
+  vatsimConnectConfiguration = parseVatsimConnectConfiguration(
+    process.env,
+  ),
 }: BuildAppOptions = {}) {
   const app = Fastify({
     logger,
@@ -52,6 +64,12 @@ export function buildApp({
   registerErrorHandlers(app);
   registerReferenceDataRoutes(app, referenceDataRepository);
   registerSessionRoutes(app, sessionLifecycle, sessionConfiguration);
+  registerVatsimAuthenticationRoutes(
+    app,
+    vatsimAuthentication,
+    vatsimConnectConfiguration,
+    sessionConfiguration,
+  );
 
   app.get(
     `${API_PREFIX}/health`,
