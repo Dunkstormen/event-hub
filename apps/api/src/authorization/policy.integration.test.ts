@@ -23,10 +23,12 @@ import {
   AuthorizationPolicy,
   AuthorizationPolicyDeniedError,
   DERIVED_CONTROLLER_CAPABILITY,
+  canManageEvent,
   canReadEvent,
   evaluateAuthorization,
   hasControllerEligibility,
   hasFirCapability,
+  type EventCollaborationAction,
 } from "./policy.js";
 
 const database = createDatabaseClient(requireTestDatabaseUrl());
@@ -159,26 +161,169 @@ describe("central authorization policy", () => {
     expect(
       canReadEvent(null, {
         owningFirIcaoCode: "EFIN",
+        participatingFirIcaoCodes: [],
         published: true,
       }),
     ).toBe(true);
     expect(
       canReadEvent(null, {
         owningFirIcaoCode: "EFIN",
+        participatingFirIcaoCodes: [],
         published: false,
       }),
     ).toBe(false);
     expect(
       canReadEvent(authorization, {
         owningFirIcaoCode: "EKDK",
+        participatingFirIcaoCodes: [],
         published: false,
       }),
     ).toBe(true);
     expect(
       canReadEvent(authorization, {
         owningFirIcaoCode: "EFIN",
+        participatingFirIcaoCodes: [],
         published: false,
       }),
+    ).toBe(false);
+  });
+
+  it("applies every invited-FIR collaboration and owner-only restriction", async () => {
+    const [owner, invitedOne, invitedTwo, outsider] =
+      await Promise.all([
+        createCoordinator("10000002", "EKDK"),
+        createCoordinator("10000003", "EFIN"),
+        createCoordinator("10000004", "EFIN"),
+        createCoordinator("10000005", "ESAA"),
+      ]);
+    const [
+      ownerAuthorization,
+      invitedOneAuthorization,
+      invitedTwoAuthorization,
+      outsiderAuthorization,
+    ] = await Promise.all(
+      [owner, invitedOne, invitedTwo, outsider].map((user) =>
+        evaluateAuthorization(database, user.id, now),
+      ),
+    );
+    const event = {
+      owningFirIcaoCode: "EKDK",
+      participatingFirIcaoCodes: ["EKDK", "EFIN"],
+    } as const;
+    const collaborativeActions: readonly EventCollaborationAction[] =
+      [
+        { kind: "view-draft" },
+        { kind: "edit-content" },
+        { kind: "manage-occurrences" },
+        { kind: "manage-resources" },
+        { kind: "manage-routings" },
+        { kind: "manage-roster" },
+      ];
+    const ownerOnlyActions: readonly EventCollaborationAction[] = [
+      { kind: "add-participating-fir" },
+      {
+        kind: "remove-participating-fir",
+        targetFirIcaoCode: "EFIN",
+      },
+      {
+        kind: "transfer-ownership",
+        targetFirIcaoCode: "EFIN",
+      },
+      { kind: "cancel-series" },
+      { kind: "delete-series" },
+    ];
+
+    for (const action of collaborativeActions) {
+      expect(
+        canManageEvent(ownerAuthorization, event, action),
+      ).toBe(true);
+      expect(
+        canManageEvent(invitedOneAuthorization, event, action),
+      ).toBe(true);
+      expect(
+        canManageEvent(invitedTwoAuthorization, event, action),
+      ).toBe(true);
+      expect(
+        canManageEvent(outsiderAuthorization, event, action),
+      ).toBe(false);
+    }
+
+    for (const action of ownerOnlyActions) {
+      expect(
+        canManageEvent(ownerAuthorization, event, action),
+      ).toBe(true);
+      expect(
+        canManageEvent(invitedOneAuthorization, event, action),
+      ).toBe(false);
+      expect(
+        canManageEvent(invitedTwoAuthorization, event, action),
+      ).toBe(false);
+      expect(
+        canManageEvent(outsiderAuthorization, event, action),
+      ).toBe(false);
+    }
+
+    expect(
+      canManageEvent(ownerAuthorization, event, {
+        kind: "remove-participating-fir",
+        targetFirIcaoCode: "EKDK",
+      }),
+    ).toBe(false);
+    expect(
+      canManageEvent(ownerAuthorization, event, {
+        kind: "transfer-ownership",
+        targetFirIcaoCode: "EKDK",
+      }),
+    ).toBe(false);
+    expect(
+      canManageEvent(ownerAuthorization, event, {
+        kind: "transfer-ownership",
+        targetFirIcaoCode: "ESAA",
+      }),
+    ).toBe(false);
+
+    const transferredEvent = {
+      owningFirIcaoCode: "EFIN",
+      participatingFirIcaoCodes: ["EKDK", "EFIN"],
+    } as const;
+    expect(
+      canManageEvent(ownerAuthorization, transferredEvent, {
+        kind: "edit-content",
+      }),
+    ).toBe(true);
+    expect(
+      canManageEvent(ownerAuthorization, transferredEvent, {
+        kind: "cancel-series",
+      }),
+    ).toBe(false);
+    expect(
+      canManageEvent(
+        invitedOneAuthorization,
+        transferredEvent,
+        { kind: "cancel-series" },
+      ),
+    ).toBe(true);
+    expect(
+      canManageEvent(
+        invitedOneAuthorization,
+        transferredEvent,
+        {
+          kind: "remove-participating-fir",
+          targetFirIcaoCode: "EKDK",
+        },
+      ),
+    ).toBe(true);
+
+    const formerOwnerRemovedEvent = {
+      owningFirIcaoCode: "EFIN",
+      participatingFirIcaoCodes: ["EFIN"],
+    } as const;
+    expect(
+      canManageEvent(
+        ownerAuthorization,
+        formerOwnerRemovedEvent,
+        { kind: "edit-content" },
+      ),
     ).toBe(false);
   });
 
@@ -323,12 +468,29 @@ describe("central authorization policy", () => {
       async (request) => {
         const readable = await guard.canReadEvent(request, {
           owningFirIcaoCode: "EKDK",
+          participatingFirIcaoCodes: [],
           published: request.params.visibility === "published",
         });
         if (!readable) {
           throw new ApiError(404, "NOT_FOUND", "Event not found.");
         }
         return { readable: true };
+      },
+    );
+    app.get<{ Params: { action: string } }>(
+      "/test/collaboration/:action",
+      async (request) => {
+        await guard.requireEvent(
+          request,
+          {
+            owningFirIcaoCode: "EFIN",
+            participatingFirIcaoCodes: ["EKDK", "EFIN"],
+          },
+          request.params.action === "cancel"
+            ? { kind: "cancel-series" }
+            : { kind: "edit-content" },
+        );
+        return { allowed: true };
       },
     );
     await app.ready();
@@ -359,6 +521,20 @@ describe("central authorization policy", () => {
       method: "GET",
       url: "/test/events/draft",
     });
+    const invitedEdit = await app.inject({
+      method: "GET",
+      url: "/test/collaboration/edit",
+      headers: {
+        cookie: `event_hub_id=${sessionToken}`,
+      },
+    });
+    const invitedCancellation = await app.inject({
+      method: "GET",
+      url: "/test/collaboration/cancel",
+      headers: {
+        cookie: `event_hub_id=${sessionToken}`,
+      },
+    });
 
     expect(anonymousDenial.statusCode).toBe(401);
     expect(Value.Check(
@@ -381,6 +557,18 @@ describe("central authorization policy", () => {
     expect(anonymousDraft.statusCode).toBe(404);
     expect(anonymousDraft.json()).toMatchObject({
       error: { code: "NOT_FOUND" },
+    });
+    expect(invitedEdit.statusCode).toBe(200);
+    expect(invitedCancellation.statusCode).toBe(403);
+    expect(Value.Check(
+      ApiErrorResponseSchema,
+      invitedCancellation.json(),
+    )).toBe(true);
+    expect(invitedCancellation.json()).toMatchObject({
+      error: {
+        code: "FORBIDDEN",
+        message: "You cannot manage this event.",
+      },
     });
   });
 

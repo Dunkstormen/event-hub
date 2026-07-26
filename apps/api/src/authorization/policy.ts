@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from "@event-hub/database";
 import {
   EVENTS_MANAGE_CAPABILITY,
+  ROSTERS_MANAGE_CAPABILITY,
   SYSTEM_ADMINISTRATOR_CAPABILITY,
 } from "@event-hub/database";
 
@@ -18,10 +19,33 @@ export type EffectiveAuthorization = Readonly<{
   controllerFirIcaoCodes: readonly string[];
 }>;
 
-export type EventReadTarget = Readonly<{
+export type EventCollaborationTarget = Readonly<{
   owningFirIcaoCode: string;
-  published: boolean;
+  participatingFirIcaoCodes: readonly string[];
 }>;
+
+export type EventReadTarget = EventCollaborationTarget &
+  Readonly<{
+    published: boolean;
+  }>;
+
+export type EventCollaborationAction =
+  | Readonly<{
+      kind:
+        | "view-draft"
+        | "edit-content"
+        | "manage-occurrences"
+        | "manage-resources"
+        | "manage-routings"
+        | "manage-roster"
+        | "add-participating-fir"
+        | "cancel-series"
+        | "delete-series";
+    }>
+  | Readonly<{
+      kind: "remove-participating-fir" | "transfer-ownership";
+      targetFirIcaoCode: string;
+    }>;
 
 type AuthorizationDataSource = Pick<
   Prisma.TransactionClient,
@@ -201,6 +225,83 @@ export function hasFirCapability(
   );
 }
 
+function hasParticipatingFirCapability(
+  authorization: EffectiveAuthorization | null,
+  capabilityKey: string,
+  event: EventCollaborationTarget,
+) {
+  const participatingFirs = new Set(
+    event.participatingFirIcaoCodes.map(normalizeIcaoCode),
+  );
+  participatingFirs.add(
+    normalizeIcaoCode(event.owningFirIcaoCode),
+  );
+
+  return [...participatingFirs].some((firIcaoCode) =>
+    hasFirCapability(
+      authorization,
+      capabilityKey,
+      firIcaoCode,
+    ),
+  );
+}
+
+export function canManageEvent(
+  authorization: EffectiveAuthorization | null,
+  event: EventCollaborationTarget,
+  action: EventCollaborationAction,
+) {
+  const owningFirIcaoCode = normalizeIcaoCode(
+    event.owningFirIcaoCode,
+  );
+  const ownsEventScope = hasFirCapability(
+    authorization,
+    EVENTS_MANAGE_CAPABILITY,
+    owningFirIcaoCode,
+  );
+
+  switch (action.kind) {
+    case "view-draft":
+    case "edit-content":
+    case "manage-occurrences":
+    case "manage-resources":
+    case "manage-routings":
+      return hasParticipatingFirCapability(
+        authorization,
+        EVENTS_MANAGE_CAPABILITY,
+        event,
+      );
+    case "manage-roster":
+      return hasParticipatingFirCapability(
+        authorization,
+        ROSTERS_MANAGE_CAPABILITY,
+        event,
+      );
+    case "add-participating-fir":
+    case "cancel-series":
+    case "delete-series":
+      return ownsEventScope;
+    case "remove-participating-fir":
+      return (
+        ownsEventScope &&
+        normalizeIcaoCode(action.targetFirIcaoCode) !==
+          owningFirIcaoCode
+      );
+    case "transfer-ownership": {
+      const targetFirIcaoCode = normalizeIcaoCode(
+        action.targetFirIcaoCode,
+      );
+      return (
+        ownsEventScope &&
+        targetFirIcaoCode !== owningFirIcaoCode &&
+        event.participatingFirIcaoCodes
+          .map(normalizeIcaoCode)
+          .includes(targetFirIcaoCode)
+      );
+    }
+  }
+}
+
 export async function requireGlobalCapability(
   database: AuthorizationDataSource,
   actorUserId: string,
@@ -288,12 +389,32 @@ export function canReadEvent(
 ) {
   return (
     event.published ||
-    hasFirCapability(
+    canManageEvent(
       authorization,
-      EVENTS_MANAGE_CAPABILITY,
-      event.owningFirIcaoCode,
+      event,
+      { kind: "view-draft" },
     )
   );
+}
+
+export async function requireEventCollaboration(
+  database: AuthorizationDataSource,
+  actorUserId: string,
+  event: EventCollaborationTarget,
+  action: EventCollaborationAction,
+  now: Date = new Date(),
+) {
+  const authorization = await evaluateAuthorization(
+    database,
+    actorUserId,
+    now,
+  );
+
+  if (!canManageEvent(authorization, event, action)) {
+    throw new AuthorizationPolicyDeniedError();
+  }
+
+  return authorization;
 }
 
 export async function requireAdministrator(
@@ -365,6 +486,20 @@ export class AuthorizationPolicy {
       this.#database,
       actorUserId,
       firIcaoCode,
+      this.#clock(),
+    );
+  }
+
+  requireEvent(
+    actorUserId: string,
+    event: EventCollaborationTarget,
+    action: EventCollaborationAction,
+  ) {
+    return requireEventCollaboration(
+      this.#database,
+      actorUserId,
+      event,
+      action,
       this.#clock(),
     );
   }
