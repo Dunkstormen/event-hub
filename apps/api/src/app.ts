@@ -1,6 +1,11 @@
+import cookie from "@fastify/cookie";
 import Fastify, { type FastifyServerOptions } from "fastify";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 
+import {
+  parseSessionConfiguration,
+  type SessionConfiguration,
+} from "@event-hub/config/session";
 import {
   API_ERROR_RESPONSE_SCHEMAS,
   API_PREFIX,
@@ -10,6 +15,11 @@ import {
   type HealthResponse,
 } from "@event-hub/contracts";
 
+import {
+  anonymousSessionLifecycle,
+  registerSessionRoutes,
+  type SessionLifecycle,
+} from "./auth/routes.js";
 import { registerErrorHandlers } from "./errors.js";
 import {
   emptyReferenceDataRepository,
@@ -19,11 +29,15 @@ import { registerReferenceDataRoutes } from "./reference-data/routes.js";
 
 type BuildAppOptions = Pick<FastifyServerOptions, "logger"> & {
   referenceDataRepository?: ReferenceDataRepository;
+  sessionConfiguration?: SessionConfiguration;
+  sessionLifecycle?: SessionLifecycle;
 };
 
 export function buildApp({
   logger = false,
   referenceDataRepository = emptyReferenceDataRepository,
+  sessionConfiguration = parseSessionConfiguration(process.env),
+  sessionLifecycle = anonymousSessionLifecycle,
 }: BuildAppOptions = {}) {
   const app = Fastify({
     logger,
@@ -34,8 +48,10 @@ export function buildApp({
     },
   }).withTypeProvider<TypeBoxTypeProvider>();
 
+  app.register(cookie);
   registerErrorHandlers(app);
   registerReferenceDataRoutes(app, referenceDataRepository);
+  registerSessionRoutes(app, sessionLifecycle, sessionConfiguration);
 
   app.get(
     `${API_PREFIX}/health`,

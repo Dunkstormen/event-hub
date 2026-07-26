@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   API_PREFIX,
   API_VERSION,
+  AuthenticatedSessionSchema,
   AirportListResponseSchema,
   ApiErrorResponseSchema,
   DEFAULT_PAGE_SIZE,
@@ -13,6 +14,7 @@ import {
   IcaoCodeSchema,
   MAX_PAGE_SIZE,
   PaginationQuerySchema,
+  VatsimCidSchema,
   listQuerySchema,
   paginatedResponseSchema,
 } from "./index.js";
@@ -54,6 +56,30 @@ describe("API contracts", () => {
       Value.Check(ApiErrorResponseSchema, {
         code: "FORBIDDEN",
         message: "The envelope is missing.",
+      }),
+    ).toBe(false);
+  });
+
+  it("exposes normalized session identities without provider payloads", () => {
+    expect(Value.Check(VatsimCidSchema, "1234567")).toBe(true);
+    expect(Value.Check(VatsimCidSchema, "vatsim-123")).toBe(false);
+    expect(
+      Value.Check(AuthenticatedSessionSchema, {
+        user: {
+          cid: "1234567",
+          displayName: "Ada Lovelace",
+        },
+        expiresAt: "2026-07-25T13:00:00.000Z",
+      }),
+    ).toBe(true);
+    expect(
+      Value.Check(AuthenticatedSessionSchema, {
+        user: {
+          cid: "1234567",
+          displayName: "Ada Lovelace",
+          providerPayload: { id: 1234567 },
+        },
+        expiresAt: "2026-07-25T13:00:00.000Z",
       }),
     ).toBe(false);
   });

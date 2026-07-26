@@ -16,6 +16,15 @@ collaboration without weakening ownership.
 
 - VATSIM Connect authenticates the user and supplies the CID used as the stable
   external identity.
+- CIDs are stored as unique strings. Provider responses are mapped into a
+  normalized external-identity record; raw provider payload shapes do not
+  become persistence or API contracts.
+- Event Hub sessions use opaque cryptographically random identifiers. Only a
+  digest is stored server-side, with absolute expiry and explicit revocation.
+  Session cookies are HTTP-only and host-only, use `SameSite=Lax`, and add the
+  `Secure` `__Host-` defaults in production.
+- Disabled accounts fail closed: they cannot create new sessions, and existing
+  sessions stop authorizing requests immediately.
 - `Pilot` is the default authenticated role and is global.
 - Published public event content is also readable without authentication.
 - `Controller` capability is derived automatically from normalized Control

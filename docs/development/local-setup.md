@@ -113,8 +113,10 @@ development defaults and empty secret placeholders. Never commit `.env`.
 
 | Variable | Required | Purpose and local behavior |
 | --- | --- | --- |
+| `NODE_ENV` | Production | Runtime security mode. `pnpm dev:api` forces `development`; deployed API processes must set `production`. Only explicit `development` or `test` values permit an insecure localhost session cookie; other or missing values fail secure. |
 | `API_HOST` | No | API listen address. Defaults to `0.0.0.0`. |
 | `API_PORT` | No | API TCP port. Defaults to `4000`; values must be between 1 and 65535. |
+| `SESSION_TTL_SECONDS` | No | Absolute server-side session lifetime. Defaults to 28,800 seconds (8 hours); values must be between 300 seconds and 604,800 seconds. |
 | `DATABASE_URL` | API and seed | Development MySQL URL. The example targets `event_hub` on port 3306. |
 | `SHADOW_DATABASE_URL` | Prisma development migrations | Dedicated Prisma shadow database. The local Prisma config has the same Compose-backed fallback. |
 | `TEST_DATABASE_URL` | Test database commands | Isolated MySQL URL. The database name must end in `_test`; test commands never fall back to `DATABASE_URL`. |
@@ -126,6 +128,11 @@ development defaults and empty secret placeholders. Never commit `.env`.
 
 Production and shared environments must provide managed database, OAuth, and
 session secrets rather than reusing the local values.
+
+Session cookies use local HTTP-compatible settings during development and
+`Secure` `__Host-` defaults in production. See
+[identity-and-sessions.md](identity-and-sessions.md) for the lifecycle and
+deployment requirements.
 
 ## VATSIM Connect sandbox credentials
 

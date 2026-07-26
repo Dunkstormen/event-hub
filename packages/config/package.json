@@ -12,6 +12,10 @@
     "./server": {
       "types": "./src/server.ts",
       "default": "./dist/server.js"
+    },
+    "./session": {
+      "types": "./src/session.ts",
+      "default": "./dist/session.js"
     }
   },
   "scripts": {

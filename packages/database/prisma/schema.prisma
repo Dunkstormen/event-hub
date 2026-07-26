@@ -7,6 +7,11 @@ datasource db {
   provider = "mysql"
 }
 
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
 model Vacc {
   id        String   @id @db.VarChar(64)
   name      String   @db.VarChar(191)
@@ -44,4 +49,51 @@ model Airport {
 
   @@index([firId, active])
   @@map("airports")
+}
+
+model User {
+  id                  String             @id @default(cuid()) @db.VarChar(30)
+  cid                 String             @unique @db.VarChar(16)
+  status              UserStatus         @default(ACTIVE)
+  lastAuthenticatedAt DateTime?          @map("last_authenticated_at") @db.DateTime(3)
+  identities          ExternalIdentity[]
+  sessions            Session[]
+  createdAt           DateTime           @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt           DateTime           @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@index([status])
+  @@map("users")
+}
+
+model ExternalIdentity {
+  id           String   @id @default(cuid()) @db.VarChar(30)
+  provider     String   @db.VarChar(32)
+  subject      String   @db.VarChar(191)
+  displayName  String   @map("display_name") @db.VarChar(191)
+  givenName    String?  @map("given_name") @db.VarChar(191)
+  familyName   String?  @map("family_name") @db.VarChar(191)
+  email        String?  @db.VarChar(320)
+  lastSyncedAt DateTime @map("last_synced_at") @db.DateTime(3)
+  userId       String   @map("user_id") @db.VarChar(30)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdAt    DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@unique([provider, subject])
+  @@unique([userId, provider])
+  @@map("external_identities")
+}
+
+model Session {
+  id        String    @id @default(cuid()) @db.VarChar(30)
+  tokenHash String    @unique @map("token_hash") @db.Char(64)
+  expiresAt DateTime  @map("expires_at") @db.DateTime(3)
+  revokedAt DateTime? @map("revoked_at") @db.DateTime(3)
+  userId    String    @map("user_id") @db.VarChar(30)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+
+  @@index([userId, revokedAt, expiresAt])
+  @@index([expiresAt])
+  @@map("sessions")
 }

@@ -67,6 +67,18 @@ The shared codes cover:
 Domain-specific detail codes may refine these categories without exposing
 implementation details.
 
+## Authenticated session boundary
+
+`GET /v1/auth/session` resolves the opaque HTTP-only session cookie and returns
+only the normalized Event Hub identity: VATSIM CID, display name, and server
+expiry. Missing, invalid, expired, revoked, and disabled-user sessions return
+`401 AUTHENTICATION_REQUIRED`; provider payloads and stored session identifiers
+are never serialized.
+
+`DELETE /v1/auth/session` is idempotent. It revokes any matching server-side
+session, clears the browser cookie, and returns `204 No Content`. Session
+responses use `Cache-Control: no-store`.
+
 ## Pagination, filtering, and sorting
 
 Collection endpoints use cursor pagination:
