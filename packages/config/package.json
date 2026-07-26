@@ -5,6 +5,10 @@
   "type": "module",
   "files": ["dist"],
   "exports": {
+    "./controller-eligibility": {
+      "types": "./src/controller-eligibility.ts",
+      "default": "./dist/controller-eligibility.js"
+    },
     "./project": {
       "types": "./src/project.ts",
       "default": "./dist/project.js"

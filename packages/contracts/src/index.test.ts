@@ -152,6 +152,7 @@ describe("API contracts", () => {
         source: "manual",
         status: "active",
         sourceProvider: null,
+        providerFreshUntil: null,
         reason: "Control Center is temporarily unavailable.",
         changedBy: {
           cid: "1000001",

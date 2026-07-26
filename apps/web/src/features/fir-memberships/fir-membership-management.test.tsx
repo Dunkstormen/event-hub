@@ -34,6 +34,7 @@ const user: FirMembershipUser = {
       source: "automatic",
       status: "active",
       sourceProvider: "vateud",
+      providerFreshUntil: "2026-07-26T12:00:00.000Z",
       reason: null,
       changedBy: null,
       activeSince: "2026-07-25T08:00:00.000Z",

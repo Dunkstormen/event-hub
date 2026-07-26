@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   DatabaseZapIcon,
+  RefreshCwIcon,
   MapPinnedIcon,
   ScrollTextIcon,
   ShieldAlertIcon,
@@ -12,6 +13,8 @@ import {
 import { toast } from "sonner";
 
 import type {
+  ControllerEligibilityProvider,
+  ControllerEligibilityStatus,
   FirMembership,
   FirMembershipOverview,
   FirMembershipUsersResponse,
@@ -35,6 +38,7 @@ import {
 import { ApiClientError, apiRequest } from "@/lib/api-client";
 import { FirMembershipAuditPanel } from "./fir-membership-audit-panel";
 import { FirMembershipManagementPanel } from "./fir-membership-management-panel";
+import { ControllerEligibilityPanel } from "./controller-eligibility-panel";
 
 const initialUserPageSize = 25;
 
@@ -90,9 +94,13 @@ export function FirMembershipManager() {
   const [overview, setOverview] = useState<FirMembershipOverview>();
   const [usersPage, setUsersPage] =
     useState<FirMembershipUsersResponse>();
+  const [eligibilityStatus, setEligibilityStatus] =
+    useState<ControllerEligibilityStatus>();
   const [userQuery, setUserQuery] = useState("");
   const [initialError, setInitialError] = useState<unknown>();
   const [pending, setPending] = useState(false);
+  const [pendingProvider, setPendingProvider] =
+    useState<ControllerEligibilityProvider | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -100,11 +108,15 @@ export function FirMembershipManager() {
     void Promise.all([
       apiRequest<FirMembershipOverview>("/v1/admin/fir-memberships"),
       apiRequest<FirMembershipUsersResponse>(usersPath("")),
+      apiRequest<ControllerEligibilityStatus>(
+        "/v1/admin/controller-eligibility",
+      ),
     ])
-      .then(([nextOverview, nextUsers]) => {
+      .then(([nextOverview, nextUsers, nextEligibilityStatus]) => {
         if (active) {
           setOverview(nextOverview);
           setUsersPage(nextUsers);
+          setEligibilityStatus(nextEligibilityStatus);
         }
       })
       .catch((error: unknown) => {
@@ -119,13 +131,18 @@ export function FirMembershipManager() {
   }, []);
 
   async function refresh(query = userQuery) {
-    const [nextOverview, nextUsers] = await Promise.all([
+    const [nextOverview, nextUsers, nextEligibilityStatus] =
+      await Promise.all([
       apiRequest<FirMembershipOverview>("/v1/admin/fir-memberships"),
       apiRequest<FirMembershipUsersResponse>(usersPath(query)),
-    ]);
+        apiRequest<ControllerEligibilityStatus>(
+          "/v1/admin/controller-eligibility",
+        ),
+      ]);
 
     setOverview(nextOverview);
     setUsersPage(nextUsers);
+    setEligibilityStatus(nextEligibilityStatus);
   }
 
   async function runMutation(
@@ -196,6 +213,37 @@ export function FirMembershipManager() {
     }
   }
 
+  async function synchronizeProvider(
+    provider: ControllerEligibilityProvider,
+  ) {
+    setPendingProvider(provider);
+
+    try {
+      await apiRequest(
+        `/v1/admin/controller-eligibility/${encodeURIComponent(provider)}/sync`,
+        { method: "POST" },
+      );
+      const nextStatus = await apiRequest<ControllerEligibilityStatus>(
+        "/v1/admin/controller-eligibility",
+      );
+      setEligibilityStatus(nextStatus);
+      await refresh();
+      toast.success(
+        `${provider === "control-center" ? "Control Center" : "VATEUD"} synchronization completed.`,
+      );
+    } catch (error) {
+      toast.error(messageForError(error));
+      const nextStatus = await apiRequest<ControllerEligibilityStatus>(
+        "/v1/admin/controller-eligibility",
+      ).catch(() => undefined);
+      if (nextStatus !== undefined) {
+        setEligibilityStatus(nextStatus);
+      }
+    } finally {
+      setPendingProvider(null);
+    }
+  }
+
   if (initialError !== undefined) {
     const forbidden =
       initialError instanceof ApiClientError &&
@@ -223,7 +271,11 @@ export function FirMembershipManager() {
     );
   }
 
-  if (overview === undefined || usersPage === undefined) {
+  if (
+    overview === undefined ||
+    usersPage === undefined ||
+    eligibilityStatus === undefined
+  ) {
     return <LoadingState />;
   }
 
@@ -296,7 +348,11 @@ export function FirMembershipManager() {
           </TabsTrigger>
           <TabsTrigger value="audit">
             <ScrollTextIcon data-icon="inline-start" />
-            Audit history
+            Audit<span className="hidden sm:inline"> history</span>
+          </TabsTrigger>
+          <TabsTrigger value="providers">
+            <RefreshCwIcon data-icon="inline-start" />
+            <span className="hidden sm:inline">Provider </span>sync
           </TabsTrigger>
         </TabsList>
 
@@ -336,6 +392,14 @@ export function FirMembershipManager() {
         <TabsContent value="audit" className="pt-3">
           <FirMembershipAuditPanel
             records={overview.recentAuditRecords}
+          />
+        </TabsContent>
+
+        <TabsContent value="providers" className="pt-3">
+          <ControllerEligibilityPanel
+            status={eligibilityStatus}
+            pendingProvider={pendingProvider}
+            onSynchronize={synchronizeProvider}
           />
         </TabsContent>
       </Tabs>

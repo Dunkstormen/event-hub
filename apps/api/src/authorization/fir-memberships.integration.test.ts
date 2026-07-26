@@ -189,6 +189,7 @@ describe("FIR membership administration", () => {
         firId: fir.id,
         source: "AUTOMATIC",
         sourceProvider: "control-center",
+        providerFreshUntil: new Date("2026-07-26T12:00:00.000Z"),
         status: "ACTIVE",
       },
     });

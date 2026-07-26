@@ -112,6 +112,7 @@ type MembershipRecord = Readonly<{
   source: "AUTOMATIC" | "MANUAL";
   status: "ACTIVE" | "REVOKED";
   sourceProvider: string | null;
+  providerFreshUntil: Date | null;
   reason: string | null;
   activeSince: Date;
   revokedAt: Date | null;
@@ -134,6 +135,8 @@ function mapMembership(membership: MembershipRecord): FirMembership {
     source: membershipSource(membership.source),
     status: membershipStatus(membership.status),
     sourceProvider: membership.sourceProvider,
+    providerFreshUntil:
+      membership.providerFreshUntil?.toISOString() ?? null,
     reason: membership.reason,
     changedBy:
       membership.changedBy === null
@@ -154,6 +157,7 @@ function membershipState(membership: FirMembership) {
     source: membership.source,
     status: membership.status,
     sourceProvider: membership.sourceProvider,
+    providerFreshUntil: membership.providerFreshUntil,
     reason: membership.reason,
     changedByCid: membership.changedBy?.cid ?? null,
     activeSince: membership.activeSince,
@@ -184,6 +188,7 @@ const membershipSelection = {
   source: true,
   status: true,
   sourceProvider: true,
+  providerFreshUntil: true,
   reason: true,
   activeSince: true,
   revokedAt: true,
@@ -425,6 +430,7 @@ export function createFirMembershipAdministration(
             source: "MANUAL",
             status: "ACTIVE",
             sourceProvider: null,
+            providerFreshUntil: null,
             reason,
             changedByUserId: actorUserId,
             activeSince: changedAt,
@@ -435,6 +441,8 @@ export function createFirMembershipAdministration(
             firId: fir.id,
             source: "MANUAL",
             status: "ACTIVE",
+            sourceProvider: null,
+            providerFreshUntil: null,
             reason,
             changedByUserId: actorUserId,
             activeSince: changedAt,
@@ -515,6 +523,7 @@ export function createFirMembershipAdministration(
             source: "MANUAL",
             status: "REVOKED",
             sourceProvider: null,
+            providerFreshUntil: null,
             reason,
             changedByUserId: actorUserId,
             revokedAt: new Date(),

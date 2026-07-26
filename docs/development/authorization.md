@@ -111,10 +111,12 @@ row for each user/FIR pair records:
 - whether the source is `AUTOMATIC` or `MANUAL`;
 - whether the current status is `ACTIVE` or `REVOKED`;
 - provider provenance for automatic membership;
+- the provider evidence deadline for automatic membership;
 - the administrator, reason, and timestamps for manual membership.
 
-The database requires automatic rows to identify a provider and manual rows to
-carry a reason. Active and revoked timestamps must agree with the status.
+The database requires automatic rows to identify a provider and carry a
+freshness deadline, while manual rows must carry a reason and cannot carry
+provider provenance. Active and revoked timestamps must agree with the status.
 Memberships always use an explicit FIR relation; airport prefixes and other
 ICAO string patterns are never used to infer one.
 
@@ -126,9 +128,10 @@ previous provider state in the immutable audit record. A revocation changes
 the current status immediately, so the next authorization check no longer sees
 an active membership.
 
-Issue #14 will add provider synchronization. Synchronization must fail closed
-when provider data is unavailable or stale and must not silently replace an
-explicit manual override.
+Control Center and VATEUD synchronization fails closed when provider data is
+unavailable or stale and never replaces an explicit manual override. See
+[controller-eligibility.md](controller-eligibility.md) for source precedence,
+freshness, retry, and administration behavior.
 
 The membership-management interface is available at
 `/administration/memberships`. Its API boundary is:
@@ -139,6 +142,8 @@ The membership-management interface is available at
 | `GET /v1/admin/fir-memberships/users` | CID/display-name search with cursor pagination and current membership state |
 | `PUT /v1/admin/fir-memberships/users/{userId}/firs/{firIcaoCode}` | Assign, override, or reactivate one manual membership with a reason |
 | `DELETE /v1/admin/fir-memberships/users/{userId}/firs/{firIcaoCode}` | Revoke one membership with a reason |
+| `GET /v1/admin/controller-eligibility` | Provider freshness, failures, retry state, and recent synchronization runs |
+| `POST /v1/admin/controller-eligibility/{provider}/sync` | Run a configured provider immediately |
 
 Every endpoint requires an active user with a global assignment granting
 `fir-memberships.manage`. The UI keeps role administration and membership

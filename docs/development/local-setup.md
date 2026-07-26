@@ -129,6 +129,12 @@ development defaults and empty secret placeholders. Never commit `.env`.
 | `VATSIM_CONNECT_CLIENT_SECRET` | VATSIM authentication | Sandbox OAuth client secret. It belongs only in `.env`; never place a real value in `.env.example`. |
 | `VATSIM_CONNECT_REDIRECT_URI` | VATSIM authentication | Exact callback URI registered with the OAuth client. Local default: `http://localhost:4000/v1/auth/vatsim/callback`. |
 | `VATSIM_CONNECT_SUCCESS_REDIRECT_URI` | VATSIM authentication | Trusted web URI used after a successful callback. Local default: `http://localhost:3000`; production requires HTTPS. |
+| `CONTROL_CENTER_API_BASE_URL` | Control Center eligibility | HTTPS API path prefix. Required with `CONTROL_CENTER_API_KEY`; leaving both empty disables this provider. |
+| `CONTROL_CENTER_API_KEY` | Control Center eligibility | Bearer token used only by the API process. Never place a real value in `.env.example`. |
+| `VATEUD_API_BASE_URL` | VATEUD eligibility | HTTPS API path prefix. Defaults to `https://core.vateud.net/api` when a key is configured. |
+| `VATEUD_API_KEY` | VATEUD eligibility | `X-API-KEY` credential used only by the API process; leaving it empty disables this provider. |
+| `CONTROLLER_ELIGIBILITY_SYNC_INTERVAL_SECONDS` | Controller eligibility | Successful-provider polling interval. Defaults to 3,600 seconds; allowed range is 300–86,400. |
+| `CONTROLLER_ELIGIBILITY_FRESHNESS_SECONDS` | Controller eligibility | Evidence lifetime. Defaults to 7,200 seconds; it must be at least the sync interval and no more than seven days. |
 
 Production and shared environments must provide managed database, OAuth, and
 session secrets rather than reusing the local values.
@@ -142,6 +148,9 @@ Session cookies use local HTTP-compatible settings during development and
 `Secure` `__Host-` defaults in production. See
 [identity-and-sessions.md](identity-and-sessions.md) for the lifecycle and
 deployment requirements.
+Controller eligibility provider boundaries, retries, and freshness behavior are
+documented in
+[controller-eligibility.md](controller-eligibility.md).
 
 ## VATSIM Connect sandbox credentials
 
