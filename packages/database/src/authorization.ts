@@ -11,6 +11,8 @@ export const SYSTEM_ADMINISTRATOR_CAPABILITY =
   "system.administrator";
 export const AUTHORIZATION_MANAGE_CAPABILITY =
   "authorization.manage";
+export const FIR_MEMBERSHIPS_MANAGE_CAPABILITY =
+  "fir-memberships.manage";
 
 const vatsimCidPattern = /^[0-9]{1,16}$/u;
 
@@ -30,7 +32,7 @@ export const INITIAL_CAPABILITIES = [
     scope: "GLOBAL_ONLY",
   },
   {
-    key: "fir-memberships.manage",
+    key: FIR_MEMBERSHIPS_MANAGE_CAPABILITY,
     name: "Manage FIR memberships",
     description:
       "Manage user FIR memberships and manual controller assignments.",

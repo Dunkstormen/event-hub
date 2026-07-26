@@ -33,6 +33,8 @@ import {
   type AuthorizationSessions,
   registerAuthorizationAdministrationRoutes,
 } from "./authorization/routes.js";
+import type { FirMembershipAdministration } from "./authorization/fir-memberships.js";
+import { registerFirMembershipAdministrationRoutes } from "./authorization/fir-membership-routes.js";
 import { registerErrorHandlers } from "./errors.js";
 import {
   emptyReferenceDataRepository,
@@ -43,6 +45,7 @@ import { registerReferenceDataRoutes } from "./reference-data/routes.js";
 type BuildAppOptions = Pick<FastifyServerOptions, "logger"> & {
   authorizationAdministration?: AuthorizationAdministration | null;
   authorizationSessions?: AuthorizationSessions | null;
+  firMembershipAdministration?: FirMembershipAdministration | null;
   referenceDataRepository?: ReferenceDataRepository;
   sessionConfiguration?: SessionConfiguration;
   sessionLifecycle?: SessionLifecycle;
@@ -54,6 +57,7 @@ type BuildAppOptions = Pick<FastifyServerOptions, "logger"> & {
 export function buildApp({
   authorizationAdministration = null,
   authorizationSessions = null,
+  firMembershipAdministration = null,
   logger = false,
   referenceDataRepository = emptyReferenceDataRepository,
   sessionConfiguration = parseSessionConfiguration(process.env),
@@ -79,7 +83,7 @@ export function buildApp({
       callback(null, origin === undefined || origin === webOrigin);
     },
     credentials: true,
-    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type"],
     maxAge: 600,
     strictPreflight: true,
@@ -100,6 +104,17 @@ export function buildApp({
     registerAuthorizationAdministrationRoutes(
       app,
       authorizationAdministration,
+      authorizationSessions,
+      sessionConfiguration,
+    );
+  }
+  if (
+    firMembershipAdministration !== null &&
+    authorizationSessions !== null
+  ) {
+    registerFirMembershipAdministrationRoutes(
+      app,
+      firMembershipAdministration,
       authorizationSessions,
       sessionConfiguration,
     );

@@ -1,4 +1,4 @@
-import { Type } from "@sinclair/typebox";
+import { FormatRegistry, Type } from "@sinclair/typebox";
 import { Value } from "@sinclair/typebox/value";
 import { describe, expect, it } from "vitest";
 
@@ -11,15 +11,27 @@ import {
   AirportListResponseSchema,
   ApiErrorResponseSchema,
   DEFAULT_PAGE_SIZE,
+  FirMembershipSchema,
   FirSchema,
   HealthResponseSchema,
   IcaoCodeSchema,
   MAX_PAGE_SIZE,
+  ManualFirMembershipChangeSchema,
   PaginationQuerySchema,
   VatsimCidSchema,
   listQuerySchema,
   paginatedResponseSchema,
 } from "./index.js";
+
+if (!FormatRegistry.Has("date-time")) {
+  FormatRegistry.Set(
+    "date-time",
+    (value) =>
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(
+        value,
+      ) && !Number.isNaN(Date.parse(value)),
+  );
+}
 
 describe("API contracts", () => {
   it("uses the v1 URL boundary", () => {
@@ -124,6 +136,40 @@ describe("API contracts", () => {
           },
         ],
         recentAuditRecords: [],
+      }),
+    ).toBe(true);
+  });
+
+  it("defines FIR membership provenance and manual reason contracts", () => {
+    expect(
+      Value.Check(FirMembershipSchema, {
+        id: "membership-1",
+        fir: {
+          icaoCode: "EKDK",
+          name: "Copenhagen FIR",
+          active: true,
+        },
+        source: "manual",
+        status: "active",
+        sourceProvider: null,
+        reason: "Control Center is temporarily unavailable.",
+        changedBy: {
+          cid: "1000001",
+          displayName: "Alex Administrator",
+        },
+        activeSince: "2026-07-26T10:00:00.000Z",
+        revokedAt: null,
+        updatedAt: "2026-07-26T10:00:00.000Z",
+      }),
+    ).toBe(true);
+    expect(
+      Value.Check(ManualFirMembershipChangeSchema, {
+        reason: "ok",
+      }),
+    ).toBe(false);
+    expect(
+      Value.Check(ManualFirMembershipChangeSchema, {
+        reason: "Verified by the training team.",
       }),
     ).toBe(true);
   });

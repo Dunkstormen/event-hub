@@ -8,10 +8,10 @@ import {
 import { requireTestDatabaseUrl } from "@event-hub/database/testing";
 
 import { buildApp } from "../app.js";
-import { createAuthorizationAdministration } from "./administration.js";
+import { createFirMembershipAdministration } from "./fir-memberships.js";
 
 const database = createDatabaseClient(requireTestDatabaseUrl());
-const administration = createAuthorizationAdministration(database);
+const administration = createFirMembershipAdministration(database);
 const apps: ReturnType<typeof buildApp>[] = [];
 const sessionConfiguration = {
   cookieName: "event_hub_id",
@@ -20,7 +20,7 @@ const sessionConfiguration = {
 } as const;
 const sessionToken = "A".repeat(43);
 
-async function clearAuthorizationState() {
+async function clearState() {
   await database.session.deleteMany();
   await database.externalIdentity.deleteMany();
   await database.authorizationAuditRecord.deleteMany();
@@ -34,7 +34,6 @@ async function clearAuthorizationState() {
 
 async function buildAuthorizedApp(actorUserId: string) {
   const app = buildApp({
-    authorizationAdministration: administration,
     authorizationSessions: {
       async authenticateActor(token) {
         return token === sessionToken
@@ -46,6 +45,7 @@ async function buildAuthorizedApp(actorUserId: string) {
           : null;
       },
     },
+    firMembershipAdministration: administration,
     sessionConfiguration,
   });
   apps.push(app);
@@ -54,7 +54,7 @@ async function buildAuthorizedApp(actorUserId: string) {
 }
 
 beforeEach(async () => {
-  await clearAuthorizationState();
+  await clearState();
   await seedReferenceData(database);
   await seedAuthorizationModel(database, "10000001");
 });
@@ -65,13 +65,13 @@ afterEach(async () => {
 
 afterAll(async () => {
   try {
-    await clearAuthorizationState();
+    await clearState();
   } finally {
     await database.$disconnect();
   }
 });
 
-describe("authorization administration routes", () => {
+describe("FIR membership administration routes", () => {
   it("requires an authenticated session", async () => {
     const actor = await database.user.findUniqueOrThrow({
       where: { cid: "10000001" },
@@ -79,7 +79,7 @@ describe("authorization administration routes", () => {
     const app = await buildAuthorizedApp(actor.id);
     const response = await app.inject({
       method: "GET",
-      url: "/v1/admin/authorization",
+      url: "/v1/admin/fir-memberships",
     });
 
     expect(response.statusCode).toBe(401);
@@ -88,14 +88,14 @@ describe("authorization administration routes", () => {
     });
   });
 
-  it("denies an authenticated user without authorization management", async () => {
+  it("denies a user without global membership-management capability", async () => {
     const user = await database.user.create({
       data: { cid: "10000002" },
     });
     const app = await buildAuthorizedApp(user.id);
     const response = await app.inject({
       method: "GET",
-      url: "/v1/admin/authorization",
+      url: "/v1/admin/fir-memberships",
       headers: {
         cookie: `event_hub_id=${sessionToken}`,
       },
@@ -105,12 +105,12 @@ describe("authorization administration routes", () => {
     expect(response.json()).toMatchObject({
       error: {
         code: "FORBIDDEN",
-        message: "You cannot manage authorization.",
+        message: "You cannot manage FIR memberships.",
       },
     });
   });
 
-  it("manages roles and scoped assignments through validated audited contracts", async () => {
+  it("assigns, lists, and revokes a manual membership with audited reasons", async () => {
     const actor = await database.user.findUniqueOrThrow({
       where: { cid: "10000001" },
     });
@@ -121,84 +121,68 @@ describe("authorization administration routes", () => {
     const headers = {
       cookie: `event_hub_id=${sessionToken}`,
     };
+    const membershipUrl =
+      `/v1/admin/fir-memberships/users/${target.id}/firs/EKDK`;
 
-    const createdRole = await app.inject({
-      method: "POST",
-      url: "/v1/admin/authorization/roles",
+    const invalid = await app.inject({
+      method: "PUT",
+      url: membershipUrl,
       headers,
-      payload: {
-        key: "event-planner",
-        name: "Event Planner",
-        description: "Plans events for one FIR.",
-        scope: "fir",
-        capabilityKeys: ["events.manage"],
-      },
+      payload: { reason: "no" },
     });
     const assigned = await app.inject({
-      method: "POST",
-      url: `/v1/admin/authorization/users/${target.id}/assignments`,
+      method: "PUT",
+      url: membershipUrl,
       headers,
       payload: {
-        roleKey: "event-planner",
-        firIcaoCode: "EKDK",
+        reason: "Verified by the Danish training team.",
       },
     });
-    const assignmentId = assigned.json<{ id: string }>().id;
     const users = await app.inject({
       method: "GET",
-      url: "/v1/admin/authorization/users?q=10000002",
-      headers,
-    });
-    const blockedDelete = await app.inject({
-      method: "DELETE",
-      url: "/v1/admin/authorization/roles/event-planner",
+      url: "/v1/admin/fir-memberships/users?q=10000002",
       headers,
     });
     const revoked = await app.inject({
       method: "DELETE",
-      url: `/v1/admin/authorization/assignments/${assignmentId}`,
+      url: membershipUrl,
       headers,
-    });
-    const deleted = await app.inject({
-      method: "DELETE",
-      url: "/v1/admin/authorization/roles/event-planner",
-      headers,
+      payload: {
+        reason: "Membership withdrawn by the Danish training team.",
+      },
     });
     const overview = await app.inject({
       method: "GET",
-      url: "/v1/admin/authorization",
+      url: "/v1/admin/fir-memberships",
       headers,
     });
 
-    expect(createdRole.statusCode).toBe(201);
-    expect(createdRole.json()).toMatchObject({
-      key: "event-planner",
-      capabilityKeys: ["events.manage"],
-    });
-    expect(assigned.statusCode).toBe(201);
+    expect(invalid.statusCode).toBe(400);
+    expect(assigned.statusCode).toBe(200);
     expect(assigned.json()).toMatchObject({
-      roleKey: "event-planner",
       fir: { icaoCode: "EKDK" },
+      source: "manual",
+      status: "active",
     });
     expect(users.statusCode).toBe(200);
     expect(users.json()).toMatchObject({
       items: [
         {
           cid: "10000002",
-          effectiveCapabilities: [
+          memberships: [
             {
-              capabilityKey: "events.manage",
-              global: false,
-              firIcaoCodes: ["EKDK"],
+              fir: { icaoCode: "EKDK" },
+              status: "active",
             },
           ],
         },
       ],
     });
-    expect(blockedDelete.statusCode).toBe(409);
-    expect(revoked.statusCode).toBe(204);
-    expect(deleted.statusCode).toBe(204);
-    expect(overview.statusCode).toBe(200);
+    expect(revoked.statusCode).toBe(200);
+    expect(revoked.json()).toMatchObject({
+      status: "revoked",
+      reason: "Membership withdrawn by the Danish training team.",
+    });
     expect(
       overview
         .json<{
@@ -206,10 +190,8 @@ describe("authorization administration routes", () => {
         }>()
         .recentAuditRecords.map((record) => record.action),
     ).toEqual([
-      "authorization.role.deleted",
-      "authorization.assignment.revoked",
-      "authorization.assignment.created",
-      "authorization.role.created",
+      "fir-membership.revoked",
+      "fir-membership.assigned",
     ]);
   });
 });

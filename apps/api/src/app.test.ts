@@ -37,7 +37,7 @@ describe("health endpoint", () => {
       url: "/v1/health",
       headers: {
         origin: "https://events.example.com",
-        "access-control-request-method": "GET",
+        "access-control-request-method": "PUT",
       },
     });
     const untrusted = await app.inject({
@@ -55,6 +55,9 @@ describe("health endpoint", () => {
     );
     expect(allowed.headers["access-control-allow-credentials"]).toBe(
       "true",
+    );
+    expect(allowed.headers["access-control-allow-methods"]).toContain(
+      "PUT",
     );
     expect(untrusted.headers["access-control-allow-origin"]).toBeUndefined();
   });

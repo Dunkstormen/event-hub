@@ -30,6 +30,7 @@ async function clearAuthorizationState() {
   await database.session.deleteMany();
   await database.externalIdentity.deleteMany();
   await database.authorizationAuditRecord.deleteMany();
+  await database.firMembership.deleteMany();
   await database.userRoleAssignment.deleteMany();
   await database.roleCapability.deleteMany();
   await database.role.deleteMany();

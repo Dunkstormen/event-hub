@@ -1,10 +1,11 @@
 # Roles, capabilities, and administrator bootstrap
 
-Issues #11 and #12 establish the persistence, administration API, and
-administrator UI for Event Hub authorization. Issue #15 will apply these
-capabilities centrally to event and FIR-scoped operations. Until that issue
-lands, the role matrix protects its own management workflows but does not by
-itself authorize every future domain operation.
+Issues #11, #12, and #13 establish the persistence, administration APIs, and
+administrator interfaces for Event Hub authorization and FIR membership.
+Issue #15 will apply these capabilities centrally to event and FIR-scoped
+operations. Until that issue lands, the role matrix and membership model
+protect their own management workflows but do not by themselves authorize
+every future domain operation.
 
 ## Capability model
 
@@ -28,6 +29,11 @@ marked `GLOBAL_ONLY`.
 requires at least one active user to retain both capabilities through global
 assignments. It does not compare the display name or role key "Administrator"
 to authorize a user.
+
+`fir-memberships.manage` independently grants the audited manual-membership
+workflow. It does not grant role-matrix management, and
+`authorization.manage` does not implicitly grant it. The built-in global
+Administrator role receives both capabilities.
 
 The built-in roles and capabilities are protected seed definitions. Seeding
 restores missing initial grants but never removes custom grants, roles, or
@@ -97,18 +103,61 @@ Role scope and stable keys are immutable after creation. Protected roles cannot
 be deleted, the protected Administrator management capabilities cannot be
 removed, and custom roles must have no assignments before deletion.
 
+## FIR memberships and manual fallback
+
+A user can hold active memberships in multiple FIRs. The current membership
+row for each user/FIR pair records:
+
+- whether the source is `AUTOMATIC` or `MANUAL`;
+- whether the current status is `ACTIVE` or `REVOKED`;
+- provider provenance for automatic membership;
+- the administrator, reason, and timestamps for manual membership.
+
+The database requires automatic rows to identify a provider and manual rows to
+carry a reason. Active and revoked timestamps must agree with the status.
+Memberships always use an explicit FIR relation; airport prefixes and other
+ICAO string patterns are never used to infer one.
+
+Manual assignment, override, reactivation, and revocation run in serializable
+transactions. An active manual assignment and an already-revoked manual
+assignment are idempotent no-ops. Overriding an active automatic membership
+changes the current row to an explicit manual decision while preserving the
+previous provider state in the immutable audit record. A revocation changes
+the current status immediately, so the next authorization check no longer sees
+an active membership.
+
+Issue #14 will add provider synchronization. Synchronization must fail closed
+when provider data is unavailable or stale and must not silently replace an
+explicit manual override.
+
+The membership-management interface is available at
+`/administration/memberships`. Its API boundary is:
+
+| Method and path | Purpose |
+| --- | --- |
+| `GET /v1/admin/fir-memberships` | Active FIR options and the latest 25 membership audit records |
+| `GET /v1/admin/fir-memberships/users` | CID/display-name search with cursor pagination and current membership state |
+| `PUT /v1/admin/fir-memberships/users/{userId}/firs/{firIcaoCode}` | Assign, override, or reactivate one manual membership with a reason |
+| `DELETE /v1/admin/fir-memberships/users/{userId}/firs/{firIcaoCode}` | Revoke one membership with a reason |
+
+Every endpoint requires an active user with a global assignment granting
+`fir-memberships.manage`. The UI keeps role administration and membership
+administration as separate workspaces so the capability can be delegated
+without broader authorization-management access.
+
 ## Authorization audit records
 
-Each successful administrator mutation writes an
+Each successful role, assignment, account, or membership mutation writes an
 `authorization_audit_records` row in the same serializable transaction as the
 change. Records identify the acting user, action, target, human-readable
 summary, timestamp, and JSON before/after states where applicable. Failed,
 rolled-back, and idempotent no-op requests do not create misleading audit
 entries.
 
-Audit rows retain their actor relation and are not deleted with roles or
-assignments. The access-management UI shows the latest 25 records; the database
-remains the source of truth for older history.
+Audit rows retain their actor relation and are not deleted with roles,
+assignments, or current membership-state changes. The two administration
+interfaces show the latest 25 records relevant to their workspace; the
+database remains the source of truth for older history.
 
 ## Initial administrator provisioning
 
