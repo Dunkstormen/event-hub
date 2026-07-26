@@ -77,10 +77,17 @@ Prisma 7 runs seeds only when explicitly requested:
 pnpm db:seed
 ```
 
-The seed upserts the single VATSIM Scandinavia vACC plus the initial FIR and
-airport reference records. It never removes reference records, so running it
-more than once produces the same state without breaking existing relations.
-See [reference-data.md](reference-data.md) for the seed scope and update policy.
+The seed upserts the single VATSIM Scandinavia vACC, initial FIR and airport
+reference records, capabilities, and built-in roles. It never removes
+reference records, role assignments, or capability grants, so running it more
+than once is safe.
+
+Set `BOOTSTRAP_ADMIN_CID` before the first seed to provision an active user and
+global Administrator assignment for that CID. Repeated seeds preserve the same
+assignment. Changing the value adds another administrator and never silently
+removes the previous one. See [authorization.md](authorization.md) for the
+bootstrap and lockout-recovery procedure, and
+[reference-data.md](reference-data.md) for the geographic seed policy.
 
 ## Test isolation
 

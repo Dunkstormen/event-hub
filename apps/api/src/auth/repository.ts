@@ -1,5 +1,9 @@
 import type { PrismaClient } from "@event-hub/database";
-import { Prisma } from "@event-hub/database";
+import {
+  GLOBAL_ROLE_SCOPE_KEY,
+  PILOT_ROLE_KEY,
+  Prisma,
+} from "@event-hub/database";
 
 import {
   type IdentitySessionRepository,
@@ -60,6 +64,32 @@ export function createIdentitySessionRepository(
           },
           select: {
             displayName: true,
+          },
+        });
+        const pilotRole = await transaction.role.findUnique({
+          where: { key: PILOT_ROLE_KEY },
+          select: { id: true, scope: true },
+        });
+
+        if (pilotRole?.scope !== "GLOBAL") {
+          throw new Error(
+            "Authorization seed data is missing the global Pilot role.",
+          );
+        }
+
+        await transaction.userRoleAssignment.upsert({
+          where: {
+            userId_roleId_scopeKey: {
+              userId: user.id,
+              roleId: pilotRole.id,
+              scopeKey: GLOBAL_ROLE_SCOPE_KEY,
+            },
+          },
+          update: {},
+          create: {
+            userId: user.id,
+            roleId: pilotRole.id,
+            scopeKey: GLOBAL_ROLE_SCOPE_KEY,
           },
         });
 

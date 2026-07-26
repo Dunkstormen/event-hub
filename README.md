@@ -23,6 +23,7 @@ The first release targets:
 - [Local MySQL and migration workflow](docs/development/database.md)
 - [Testing and continuous integration](docs/development/testing.md)
 - [Identity and session security](docs/development/identity-and-sessions.md)
+- [Roles, capabilities, and administrator bootstrap](docs/development/authorization.md)
 - [FIR and airport reference data](docs/development/reference-data.md)
 - [Delivery board](https://github.com/users/Dunkstormen/projects/2/views/2)
 

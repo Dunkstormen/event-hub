@@ -1,5 +1,6 @@
 import {
   createDatabaseClient,
+  seedAuthorizationModel,
   seedReferenceData,
 } from "../src/index.js";
 
@@ -13,6 +14,10 @@ const database = createDatabaseClient(databaseUrl);
 
 try {
   await seedReferenceData(database);
+  await seedAuthorizationModel(
+    database,
+    process.env.BOOTSTRAP_ADMIN_CID,
+  );
 
   console.info("Database seed completed.");
 } finally {

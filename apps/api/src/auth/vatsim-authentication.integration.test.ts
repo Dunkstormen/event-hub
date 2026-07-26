@@ -2,7 +2,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { SessionConfiguration } from "@event-hub/config/session";
 import type { VatsimConnectConfiguration } from "@event-hub/config/vatsim-connect";
-import { createDatabaseClient } from "@event-hub/database";
+import {
+  createDatabaseClient,
+  seedAuthorizationModel,
+} from "@event-hub/database";
 import { requireTestDatabaseUrl } from "@event-hub/database/testing";
 
 import { buildApp } from "../app.js";
@@ -72,7 +75,10 @@ async function clearIdentityState() {
   await database.user.deleteMany();
 }
 
-beforeAll(clearIdentityState);
+beforeAll(async () => {
+  await clearIdentityState();
+  await seedAuthorizationModel(database);
+});
 
 afterAll(async () => {
   try {

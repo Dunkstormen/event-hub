@@ -118,6 +118,7 @@ development defaults and empty secret placeholders. Never commit `.env`.
 | `API_PORT` | No | API TCP port. Defaults to `4000`; values must be between 1 and 65535. |
 | `NEXT_PUBLIC_API_BASE_URL` | Web sign-in | Public API origin used by the VATSIM sign-in link. The local default is `http://localhost:4000`. |
 | `SESSION_TTL_SECONDS` | No | Absolute server-side session lifetime. Defaults to 28,800 seconds (8 hours); values must be between 300 seconds and 604,800 seconds. |
+| `BOOTSTRAP_ADMIN_CID` | Initial authorization seed | Optional VATSIM CID to provision as the first global Administrator. It must contain 1–16 digits. Remove it after another tested administrator path exists, or keep the same value for idempotent recovery. |
 | `DATABASE_URL` | API and seed | Development MySQL URL. The example targets `event_hub` on port 3306. |
 | `SHADOW_DATABASE_URL` | Prisma development migrations | Dedicated Prisma shadow database. The local Prisma config has the same Compose-backed fallback. |
 | `TEST_DATABASE_URL` | Test database commands | Isolated MySQL URL. The database name must end in `_test`; test commands never fall back to `DATABASE_URL`. |
@@ -130,6 +131,11 @@ development defaults and empty secret placeholders. Never commit `.env`.
 
 Production and shared environments must provide managed database, OAuth, and
 session secrets rather than reusing the local values.
+
+Before opening administrator features in a new environment, run migrations,
+set `BOOTSTRAP_ADMIN_CID` to the intended administrator's VATSIM CID, and run
+`pnpm db:seed`. See [authorization.md](authorization.md) before rotating or
+removing that bootstrap value.
 
 Session cookies use local HTTP-compatible settings during development and
 `Secure` `__Host-` defaults in production. See
