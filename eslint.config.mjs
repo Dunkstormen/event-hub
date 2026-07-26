@@ -5,6 +5,13 @@ import globals from "globals";
 import typescriptEslint from "typescript-eslint";
 
 const webFiles = ["apps/web/**/*.{js,mjs,cjs,ts,tsx}"];
+const serverTypeScriptFiles = ["apps/api/**/*.ts", "packages/**/*.ts"];
+const serverTypeScriptConfig = typescriptEslint.configs.recommended.map(
+  (config) => ({
+    ...config,
+    files: serverTypeScriptFiles,
+  }),
+);
 const nextConfig = [...nextVitals, ...nextTypeScript].map((config) => ({
   ...config,
   files: webFiles,
@@ -21,10 +28,10 @@ const config = [
     ],
   },
   eslint.configs.recommended,
-  ...typescriptEslint.configs.recommended,
+  ...serverTypeScriptConfig,
   ...nextConfig,
   {
-    files: ["apps/api/**/*.ts", "packages/**/*.ts"],
+    files: serverTypeScriptFiles,
     languageOptions: {
       globals: globals.node,
     },

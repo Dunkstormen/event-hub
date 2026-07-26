@@ -89,6 +89,11 @@ removes the previous one. See [authorization.md](authorization.md) for the
 bootstrap and lockout-recovery procedure, and
 [reference-data.md](reference-data.md) for the geographic seed policy.
 
+Administrator role, capability, and assignment mutations write immutable
+authorization audit rows transactionally. Audit actors use restrictive foreign
+keys so deleting a user cannot silently orphan access history. See
+[authorization.md](authorization.md) for the mutation and retention boundary.
+
 ## Test isolation
 
 Test database operations require `TEST_DATABASE_URL`. They never fall back to

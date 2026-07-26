@@ -34,6 +34,12 @@ export type StoredSession = Readonly<{
   user: SynchronizedUser;
 }>;
 
+export type AuthenticatedActor = Readonly<{
+  id: string;
+  cid: string;
+  displayName: string;
+}>;
+
 export interface IdentitySessionRepository {
   synchronizeVatsimIdentity(
     identity: NormalizedVatsimIdentity,
@@ -186,6 +192,42 @@ export class SessionService {
   async authenticateSession(
     token: string | undefined,
   ): Promise<AuthenticatedSession | null> {
+    const session = await this.#authenticateStoredSession(token);
+
+    if (session === null) {
+      return null;
+    }
+
+    const user: AuthenticatedUser = {
+      cid: session.user.cid,
+      displayName: session.user.displayName,
+    };
+
+    return {
+      user,
+      expiresAt: session.expiresAt.toISOString(),
+    };
+  }
+
+  async authenticateActor(
+    token: string | undefined,
+  ): Promise<AuthenticatedActor | null> {
+    const session = await this.#authenticateStoredSession(token);
+
+    if (session === null) {
+      return null;
+    }
+
+    return {
+      id: session.user.id,
+      cid: session.user.cid,
+      displayName: session.user.displayName,
+    };
+  }
+
+  async #authenticateStoredSession(
+    token: string | undefined,
+  ): Promise<StoredSession | null> {
     if (token === undefined || !sessionTokenPattern.test(token)) {
       return null;
     }
@@ -207,15 +249,7 @@ export class SessionService {
       return null;
     }
 
-    const user: AuthenticatedUser = {
-      cid: session.user.cid,
-      displayName: session.user.displayName,
-    };
-
-    return {
-      user,
-      expiresAt: session.expiresAt.toISOString(),
-    };
+    return session;
   }
 
   async revokeSession(token: string | undefined) {

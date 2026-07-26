@@ -9,6 +9,8 @@ export const EVENT_COORDINATOR_ROLE_KEY = "event-coordinator";
 export const PILOT_ROLE_KEY = "pilot";
 export const SYSTEM_ADMINISTRATOR_CAPABILITY =
   "system.administrator";
+export const AUTHORIZATION_MANAGE_CAPABILITY =
+  "authorization.manage";
 
 const vatsimCidPattern = /^[0-9]{1,16}$/u;
 
@@ -21,7 +23,7 @@ export const INITIAL_CAPABILITIES = [
     scope: "GLOBAL_ONLY",
   },
   {
-    key: "authorization.manage",
+    key: AUTHORIZATION_MANAGE_CAPABILITY,
     name: "Manage authorization",
     description:
       "Manage roles, capability grants, and user role assignments.",

@@ -26,6 +26,39 @@ afterEach(async () => {
 });
 
 describe("health endpoint", () => {
+  it("allows credentialed browser requests only from the configured web origin", async () => {
+    const app = buildApp({
+      webOrigin: "https://events.example.com",
+    });
+    apps.push(app);
+
+    const allowed = await app.inject({
+      method: "OPTIONS",
+      url: "/v1/health",
+      headers: {
+        origin: "https://events.example.com",
+        "access-control-request-method": "GET",
+      },
+    });
+    const untrusted = await app.inject({
+      method: "OPTIONS",
+      url: "/v1/health",
+      headers: {
+        origin: "https://untrusted.example.com",
+        "access-control-request-method": "GET",
+      },
+    });
+
+    expect(allowed.statusCode).toBe(204);
+    expect(allowed.headers["access-control-allow-origin"]).toBe(
+      "https://events.example.com",
+    );
+    expect(allowed.headers["access-control-allow-credentials"]).toBe(
+      "true",
+    );
+    expect(untrusted.headers["access-control-allow-origin"]).toBeUndefined();
+  });
+
   it("reports the API service and contract version", async () => {
     const app = buildApp();
     apps.push(app);

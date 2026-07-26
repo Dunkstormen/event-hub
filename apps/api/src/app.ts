@@ -1,4 +1,5 @@
 import cookie from "@fastify/cookie";
+import cors from "@fastify/cors";
 import Fastify, { type FastifyServerOptions } from "fastify";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 
@@ -10,6 +11,7 @@ import {
   parseVatsimConnectConfiguration,
   type VatsimConnectConfiguration,
 } from "@event-hub/config/vatsim-connect";
+import { parseWebOrigin } from "@event-hub/config/web-origin";
 import {
   API_ERROR_RESPONSE_SCHEMAS,
   API_PREFIX,
@@ -26,6 +28,11 @@ import {
 } from "./auth/routes.js";
 import type { VatsimAuthenticationFlow } from "./auth/vatsim-authentication.js";
 import { registerVatsimAuthenticationRoutes } from "./auth/vatsim-routes.js";
+import type { AuthorizationAdministration } from "./authorization/administration.js";
+import {
+  type AuthorizationSessions,
+  registerAuthorizationAdministrationRoutes,
+} from "./authorization/routes.js";
 import { registerErrorHandlers } from "./errors.js";
 import {
   emptyReferenceDataRepository,
@@ -34,14 +41,19 @@ import {
 import { registerReferenceDataRoutes } from "./reference-data/routes.js";
 
 type BuildAppOptions = Pick<FastifyServerOptions, "logger"> & {
+  authorizationAdministration?: AuthorizationAdministration | null;
+  authorizationSessions?: AuthorizationSessions | null;
   referenceDataRepository?: ReferenceDataRepository;
   sessionConfiguration?: SessionConfiguration;
   sessionLifecycle?: SessionLifecycle;
   vatsimAuthentication?: VatsimAuthenticationFlow | null;
   vatsimConnectConfiguration?: VatsimConnectConfiguration | null;
+  webOrigin?: string;
 };
 
 export function buildApp({
+  authorizationAdministration = null,
+  authorizationSessions = null,
   logger = false,
   referenceDataRepository = emptyReferenceDataRepository,
   sessionConfiguration = parseSessionConfiguration(process.env),
@@ -50,6 +62,7 @@ export function buildApp({
   vatsimConnectConfiguration = parseVatsimConnectConfiguration(
     process.env,
   ),
+  webOrigin = parseWebOrigin(process.env),
 }: BuildAppOptions = {}) {
   const app = Fastify({
     logger,
@@ -61,6 +74,16 @@ export function buildApp({
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   app.register(cookie);
+  app.register(cors, {
+    origin(origin, callback) {
+      callback(null, origin === undefined || origin === webOrigin);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+    maxAge: 600,
+    strictPreflight: true,
+  });
   registerErrorHandlers(app);
   registerReferenceDataRoutes(app, referenceDataRepository);
   registerSessionRoutes(app, sessionLifecycle, sessionConfiguration);
@@ -70,6 +93,17 @@ export function buildApp({
     vatsimConnectConfiguration,
     sessionConfiguration,
   );
+  if (
+    authorizationAdministration !== null &&
+    authorizationSessions !== null
+  ) {
+    registerAuthorizationAdministrationRoutes(
+      app,
+      authorizationAdministration,
+      authorizationSessions,
+      sessionConfiguration,
+    );
+  }
 
   app.get(
     `${API_PREFIX}/health`,

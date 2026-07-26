@@ -22,6 +22,7 @@ const navigation = [
   { href: "/events", label: "Events" },
   { href: "/assignments", label: "My assignments" },
   { href: "/workspace", label: "Workspace" },
+  { href: "/administration/access", label: "Administration" },
 ] as const;
 
 function isCurrentRoute(pathname: string, href: string) {

@@ -117,6 +117,7 @@ development defaults and empty secret placeholders. Never commit `.env`.
 | `API_HOST` | No | API listen address. Defaults to `0.0.0.0`. |
 | `API_PORT` | No | API TCP port. Defaults to `4000`; values must be between 1 and 65535. |
 | `NEXT_PUBLIC_API_BASE_URL` | Web sign-in | Public API origin used by the VATSIM sign-in link. The local default is `http://localhost:4000`. |
+| `WEB_ORIGIN` | Credentialed browser API requests | Exact web application origin allowed by API CORS. Defaults to `http://localhost:3000` in development and test; production requires one HTTPS origin without a path. |
 | `SESSION_TTL_SECONDS` | No | Absolute server-side session lifetime. Defaults to 28,800 seconds (8 hours); values must be between 300 seconds and 604,800 seconds. |
 | `BOOTSTRAP_ADMIN_CID` | Initial authorization seed | Optional VATSIM CID to provision as the first global Administrator. It must contain 1–16 digits. Remove it after another tested administrator path exists, or keep the same value for idempotent recovery. |
 | `DATABASE_URL` | API and seed | Development MySQL URL. The example targets `event_hub` on port 3306. |

@@ -88,6 +88,25 @@ are never serialized.
 session, clears the browser cookie, and returns `204 No Content`. Session
 responses use `Cache-Control: no-store`.
 
+Credentialed browser calls accept one exact configured `WEB_ORIGIN`. Production
+requires HTTPS. The API permits credentials, rejects untrusted origins during
+CORS preflight, and accepts JSON for administrator writes; wildcard or
+origin-reflection CORS is not used.
+
+## Administrator authorization boundary
+
+Routes below `/v1/admin/authorization` resolve the opaque session cookie to an
+internal actor and require the global `authorization.manage` capability on
+every request. Authorization is evaluated from current database grants rather
+than role names or browser claims. Missing sessions return
+`401 AUTHENTICATION_REQUIRED`; authenticated users without the capability
+receive `403 FORBIDDEN`.
+
+Role, capability, and assignment writes use serializable transactions and
+produce an audit record in the same commit. Scope conflicts return
+`400 BAD_REQUEST`; protected-role, in-use-role, duplicate-key, and last-admin
+conflicts return `409 CONFLICT`.
+
 ## Pagination, filtering, and sorting
 
 Collection endpoints use cursor pagination:
