@@ -202,6 +202,9 @@ function MembershipRecord({
 }>) {
   const active = membership.status === "active";
   const manual = membership.source === "manual";
+  const providerEvidenceStale =
+    membership.providerFreshUntil !== null &&
+    new Date(membership.providerFreshUntil) <= new Date();
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border bg-muted/20 p-4 sm:flex-row sm:items-start">
@@ -216,6 +219,9 @@ function MembershipRecord({
           <Badge variant="outline">
             {manual ? "Manual fallback" : "Automatic"}
           </Badge>
+          {providerEvidenceStale ? (
+            <Badge variant="destructive">Stale evidence</Badge>
+          ) : null}
         </div>
         <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
           <div>
@@ -258,6 +264,20 @@ function MembershipRecord({
               UTC
             </dd>
           </div>
+          {!manual ? (
+            <div>
+              <dt className="text-muted-foreground">
+                Provider evidence fresh until
+              </dt>
+              <dd className="mt-0.5">
+                {membership.providerFreshUntil === null
+                  ? "No freshness recorded"
+                  : `${timestampFormatter.format(
+                      new Date(membership.providerFreshUntil),
+                    )} UTC`}
+              </dd>
+            </div>
+          ) : null}
         </dl>
       </div>
       {active ? (

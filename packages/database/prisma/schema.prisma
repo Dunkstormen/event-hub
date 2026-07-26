@@ -32,6 +32,37 @@ enum FirMembershipStatus {
   REVOKED
 }
 
+enum EligibilityProvider {
+  CONTROL_CENTER
+  VATEUD
+}
+
+enum EligibilityProviderStatus {
+  SUCCEEDED
+  FAILED
+}
+
+enum EligibilitySyncRunStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum EligibilitySyncTrigger {
+  STARTUP
+  PERIODIC
+  ON_DEMAND
+}
+
+enum ControllerEndorsementKind {
+  EXAMINER
+  FACILITY
+  SOLO
+  TIER_1
+  TIER_2
+  VISITING
+}
+
 model Vacc {
   id        String   @id @db.VarChar(64)
   name      String   @db.VarChar(191)
@@ -83,6 +114,8 @@ model User {
   roleAssignments           UserRoleAssignment[]
   firMemberships            FirMembership[]            @relation("FirMembershipUser")
   firMembershipChanges      FirMembership[]            @relation("FirMembershipChangedBy")
+  eligibilitySnapshots      ControllerEligibilitySnapshot[]
+  controllerEndorsements    ControllerEndorsement[]
   authorizationAuditRecords AuthorizationAuditRecord[]
   createdAt                 DateTime                   @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt                 DateTime                   @updatedAt @map("updated_at") @db.DateTime(3)
@@ -149,21 +182,22 @@ model UserRoleAssignment {
 }
 
 model FirMembership {
-  id              String                @id @default(cuid()) @db.VarChar(30)
-  userId          String                @map("user_id") @db.VarChar(30)
-  firId           String                @map("fir_id") @db.VarChar(30)
-  source          FirMembershipSource
-  status          FirMembershipStatus
-  sourceProvider  String?               @map("source_provider") @db.VarChar(64)
-  reason          String?               @db.VarChar(500)
-  changedByUserId String?               @map("changed_by_user_id") @db.VarChar(30)
-  activeSince     DateTime              @default(now()) @map("active_since") @db.DateTime(3)
-  revokedAt       DateTime?             @map("revoked_at") @db.DateTime(3)
-  user            User                  @relation("FirMembershipUser", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  fir             Fir                   @relation(fields: [firId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  changedBy       User?                 @relation("FirMembershipChangedBy", fields: [changedByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  createdAt       DateTime              @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt       DateTime              @updatedAt @map("updated_at") @db.DateTime(3)
+  id                 String                @id @default(cuid()) @db.VarChar(30)
+  userId             String                @map("user_id") @db.VarChar(30)
+  firId              String                @map("fir_id") @db.VarChar(30)
+  source             FirMembershipSource
+  status             FirMembershipStatus
+  sourceProvider     String?               @map("source_provider") @db.VarChar(64)
+  providerFreshUntil DateTime?             @map("provider_fresh_until") @db.DateTime(3)
+  reason             String?               @db.VarChar(500)
+  changedByUserId    String?               @map("changed_by_user_id") @db.VarChar(30)
+  activeSince        DateTime              @default(now()) @map("active_since") @db.DateTime(3)
+  revokedAt          DateTime?             @map("revoked_at") @db.DateTime(3)
+  user               User                  @relation("FirMembershipUser", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  fir                Fir                   @relation(fields: [firId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  changedBy          User?                 @relation("FirMembershipChangedBy", fields: [changedByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdAt          DateTime              @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt          DateTime              @updatedAt @map("updated_at") @db.DateTime(3)
 
   @@unique([userId, firId])
   @@index([firId, status])
@@ -171,6 +205,103 @@ model FirMembership {
   @@index([source, status])
   @@index([changedByUserId, updatedAt], map: "fir_memberships_actor_updated_idx")
   @@map("fir_memberships")
+}
+
+model EligibilityProviderState {
+  provider            EligibilityProvider       @id
+  status              EligibilityProviderStatus
+  lastAttemptedAt     DateTime                  @map("last_attempted_at") @db.DateTime(3)
+  lastSucceededAt     DateTime?                 @map("last_succeeded_at") @db.DateTime(3)
+  freshUntil          DateTime?                 @map("fresh_until") @db.DateTime(3)
+  lastErrorCode       String?                   @map("last_error_code") @db.VarChar(64)
+  lastErrorMessage    String?                   @map("last_error_message") @db.VarChar(500)
+  consecutiveFailures Int                       @default(0) @map("consecutive_failures")
+  recordsSeen         Int                       @default(0) @map("records_seen")
+  nextRetryAt         DateTime?                 @map("next_retry_at") @db.DateTime(3)
+  createdAt           DateTime                  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt           DateTime                  @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@index([status, nextRetryAt])
+  @@map("eligibility_provider_states")
+}
+
+model EligibilitySyncRun {
+  id                 String                   @id @default(cuid()) @db.VarChar(30)
+  provider           EligibilityProvider
+  trigger            EligibilitySyncTrigger
+  status             EligibilitySyncRunStatus
+  startedAt          DateTime                 @map("started_at") @db.DateTime(3)
+  completedAt        DateTime?                @map("completed_at") @db.DateTime(3)
+  fetchedAt          DateTime?                @map("fetched_at") @db.DateTime(3)
+  freshUntil         DateTime?                @map("fresh_until") @db.DateTime(3)
+  controllersSeen    Int                      @default(0) @map("controllers_seen")
+  membershipsChanged Int                     @default(0) @map("memberships_changed")
+  errorCode          String?                  @map("error_code") @db.VarChar(64)
+  errorMessage       String?                  @map("error_message") @db.VarChar(500)
+  createdAt          DateTime                 @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt          DateTime                 @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@index([provider, startedAt])
+  @@index([status, startedAt])
+  @@map("eligibility_sync_runs")
+}
+
+model ControllerEligibilitySnapshot {
+  id          String              @id @default(cuid()) @db.VarChar(30)
+  userId      String              @map("user_id") @db.VarChar(30)
+  provider    EligibilityProvider
+  rostered    Boolean
+  ratingCode  String?             @map("rating_code") @db.VarChar(16)
+  ratingValue Int?                @map("rating_value")
+  fetchedAt   DateTime            @map("fetched_at") @db.DateTime(3)
+  freshUntil  DateTime            @map("fresh_until") @db.DateTime(3)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdAt   DateTime            @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime            @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@unique([userId, provider])
+  @@index([provider, freshUntil])
+  @@index([userId, freshUntil])
+  @@map("controller_eligibility_snapshots")
+}
+
+model ControllerEndorsement {
+  id         String                    @id @default(cuid()) @db.VarChar(30)
+  userId     String                    @map("user_id") @db.VarChar(30)
+  provider   EligibilityProvider
+  sourceKey  String                    @map("source_key") @db.VarChar(191)
+  kind       ControllerEndorsementKind
+  position   String?                   @db.VarChar(32)
+  rating     String?                   @db.VarChar(32)
+  validFrom  DateTime?                 @map("valid_from") @db.DateTime(3)
+  validUntil DateTime?                 @map("valid_until") @db.DateTime(3)
+  fetchedAt  DateTime                  @map("fetched_at") @db.DateTime(3)
+  freshUntil DateTime                  @map("fresh_until") @db.DateTime(3)
+  user       User                      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdAt  DateTime                  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime                  @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@unique([userId, provider, sourceKey])
+  @@index([userId, kind, freshUntil])
+  @@index([provider, freshUntil])
+  @@map("controller_endorsements")
+}
+
+model KnownControllerPosition {
+  id         String              @id @default(cuid()) @db.VarChar(30)
+  provider   EligibilityProvider
+  callsign   String              @db.VarChar(32)
+  name       String              @db.VarChar(191)
+  frequency  String?             @db.VarChar(16)
+  fetchedAt  DateTime            @map("fetched_at") @db.DateTime(3)
+  freshUntil DateTime            @map("fresh_until") @db.DateTime(3)
+  createdAt  DateTime            @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime            @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@unique([provider, callsign])
+  @@index([callsign, freshUntil])
+  @@index([provider, freshUntil])
+  @@map("known_controller_positions")
 }
 
 model AuthorizationAuditRecord {

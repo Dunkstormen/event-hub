@@ -40,6 +40,10 @@ export const FirMembershipSchema = Type.Object(
       Type.String({ minLength: 1, maxLength: 64 }),
       Type.Null(),
     ]),
+    providerFreshUntil: Type.Union([
+      Type.String({ format: "date-time" }),
+      Type.Null(),
+    ]),
     reason: Type.Union([
       Type.String({ minLength: 3, maxLength: 500 }),
       Type.Null(),
