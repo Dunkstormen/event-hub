@@ -22,6 +22,16 @@ enum CapabilityScope {
   GLOBAL_OR_FIR
 }
 
+enum FirMembershipSource {
+  AUTOMATIC
+  MANUAL
+}
+
+enum FirMembershipStatus {
+  ACTIVE
+  REVOKED
+}
+
 model Vacc {
   id        String   @id @db.VarChar(64)
   name      String   @db.VarChar(191)
@@ -41,6 +51,7 @@ model Fir {
   vacc            Vacc                 @relation(fields: [vaccId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   airports        Airport[]
   roleAssignments UserRoleAssignment[]
+  memberships     FirMembership[]
   createdAt       DateTime             @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt       DateTime             @updatedAt @map("updated_at") @db.DateTime(3)
 
@@ -70,6 +81,8 @@ model User {
   identities                ExternalIdentity[]
   sessions                  Session[]
   roleAssignments           UserRoleAssignment[]
+  firMemberships            FirMembership[]            @relation("FirMembershipUser")
+  firMembershipChanges      FirMembership[]            @relation("FirMembershipChangedBy")
   authorizationAuditRecords AuthorizationAuditRecord[]
   createdAt                 DateTime                   @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt                 DateTime                   @updatedAt @map("updated_at") @db.DateTime(3)
@@ -133,6 +146,31 @@ model UserRoleAssignment {
   @@index([roleId, scopeKey])
   @@index([firId, userId])
   @@map("user_role_assignments")
+}
+
+model FirMembership {
+  id              String                @id @default(cuid()) @db.VarChar(30)
+  userId          String                @map("user_id") @db.VarChar(30)
+  firId           String                @map("fir_id") @db.VarChar(30)
+  source          FirMembershipSource
+  status          FirMembershipStatus
+  sourceProvider  String?               @map("source_provider") @db.VarChar(64)
+  reason          String?               @db.VarChar(500)
+  changedByUserId String?               @map("changed_by_user_id") @db.VarChar(30)
+  activeSince     DateTime              @default(now()) @map("active_since") @db.DateTime(3)
+  revokedAt       DateTime?             @map("revoked_at") @db.DateTime(3)
+  user            User                  @relation("FirMembershipUser", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  fir             Fir                   @relation(fields: [firId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  changedBy       User?                 @relation("FirMembershipChangedBy", fields: [changedByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdAt       DateTime              @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime              @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@unique([userId, firId])
+  @@index([firId, status])
+  @@index([userId, status])
+  @@index([source, status])
+  @@index([changedByUserId, updatedAt], map: "fir_memberships_actor_updated_idx")
+  @@map("fir_memberships")
 }
 
 model AuthorizationAuditRecord {

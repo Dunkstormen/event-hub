@@ -17,6 +17,7 @@ import { OAuthTransactionManager } from "./auth/oauth-transaction.js";
 import { VatsimAuthenticationService } from "./auth/vatsim-authentication.js";
 import { VatsimConnectClient } from "./auth/vatsim-connect-client.js";
 import { createAuthorizationAdministration } from "./authorization/administration.js";
+import { createFirMembershipAdministration } from "./authorization/fir-memberships.js";
 import { createReferenceDataRepository } from "./reference-data/repository.js";
 
 try {
@@ -56,6 +57,8 @@ const app = buildApp({
   authorizationAdministration:
     createAuthorizationAdministration(database),
   authorizationSessions: sessionService,
+  firMembershipAdministration:
+    createFirMembershipAdministration(database),
   logger: true,
   referenceDataRepository: createReferenceDataRepository(database),
   sessionConfiguration,

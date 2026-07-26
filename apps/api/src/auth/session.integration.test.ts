@@ -35,6 +35,7 @@ let identityStatePrepared = false;
 async function clearIdentityState() {
   await database.session.deleteMany();
   await database.externalIdentity.deleteMany();
+  await database.firMembership.deleteMany();
   await database.user.deleteMany();
 }
 
