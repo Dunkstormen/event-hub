@@ -6,6 +6,8 @@ import {
   API_PREFIX,
   API_VERSION,
   AuthenticatedSessionSchema,
+  AuthorizationOverviewSchema,
+  CreateAuthorizationRoleSchema,
   AirportListResponseSchema,
   ApiErrorResponseSchema,
   DEFAULT_PAGE_SIZE,
@@ -82,6 +84,48 @@ describe("API contracts", () => {
         expiresAt: "2026-07-25T13:00:00.000Z",
       }),
     ).toBe(false);
+  });
+
+  it("defines administrator role and permission-matrix contracts", () => {
+    expect(
+      Value.Check(CreateAuthorizationRoleSchema, {
+        key: "event-planner",
+        name: "Event Planner",
+        description: "Plans events for one FIR.",
+        scope: "fir",
+        capabilityKeys: ["events.manage"],
+      }),
+    ).toBe(true);
+    expect(
+      Value.Check(CreateAuthorizationRoleSchema, {
+        key: "Event Planner",
+        name: "Event Planner",
+        description: "Plans events for one FIR.",
+        scope: "fir",
+        capabilityKeys: ["events.manage"],
+      }),
+    ).toBe(false);
+    expect(
+      Value.Check(AuthorizationOverviewSchema, {
+        capabilities: [
+          {
+            key: "events.manage",
+            name: "Manage events",
+            description: "Manage events in scope.",
+            scope: "global-or-fir",
+          },
+        ],
+        roles: [],
+        firs: [
+          {
+            icaoCode: "EKDK",
+            name: "Copenhagen FIR",
+            active: true,
+          },
+        ],
+        recentAuditRecords: [],
+      }),
+    ).toBe(true);
   });
 
   it("defines bounded cursor pagination", () => {

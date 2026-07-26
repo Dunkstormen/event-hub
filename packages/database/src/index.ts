@@ -6,6 +6,7 @@ import { parseMySqlDatabaseUrl } from "./url.js";
 export { Prisma, PrismaClient } from "./generated/prisma/client.js";
 export {
   ADMINISTRATOR_ROLE_KEY,
+  AUTHORIZATION_MANAGE_CAPABILITY,
   EVENT_COORDINATOR_ROLE_KEY,
   GLOBAL_ROLE_SCOPE_KEY,
   INITIAL_CAPABILITIES,

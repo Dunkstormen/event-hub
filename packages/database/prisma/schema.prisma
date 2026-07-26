@@ -63,15 +63,16 @@ model Airport {
 }
 
 model User {
-  id                  String               @id @default(cuid()) @db.VarChar(30)
-  cid                 String               @unique @db.VarChar(16)
-  status              UserStatus           @default(ACTIVE)
-  lastAuthenticatedAt DateTime?            @map("last_authenticated_at") @db.DateTime(3)
-  identities          ExternalIdentity[]
-  sessions            Session[]
-  roleAssignments     UserRoleAssignment[]
-  createdAt           DateTime             @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt           DateTime             @updatedAt @map("updated_at") @db.DateTime(3)
+  id                        String                     @id @default(cuid()) @db.VarChar(30)
+  cid                       String                     @unique @db.VarChar(16)
+  status                    UserStatus                 @default(ACTIVE)
+  lastAuthenticatedAt       DateTime?                  @map("last_authenticated_at") @db.DateTime(3)
+  identities                ExternalIdentity[]
+  sessions                  Session[]
+  roleAssignments           UserRoleAssignment[]
+  authorizationAuditRecords AuthorizationAuditRecord[]
+  createdAt                 DateTime                   @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt                 DateTime                   @updatedAt @map("updated_at") @db.DateTime(3)
 
   @@index([status])
   @@map("users")
@@ -132,6 +133,24 @@ model UserRoleAssignment {
   @@index([roleId, scopeKey])
   @@index([firId, userId])
   @@map("user_role_assignments")
+}
+
+model AuthorizationAuditRecord {
+  id          String   @id @default(cuid()) @db.VarChar(30)
+  actorUserId String   @map("actor_user_id") @db.VarChar(30)
+  action      String   @db.VarChar(64)
+  targetKind  String   @map("target_kind") @db.VarChar(32)
+  targetKey   String   @map("target_key") @db.VarChar(191)
+  summary     String   @db.VarChar(500)
+  beforeState Json?    @map("before_state")
+  afterState  Json?    @map("after_state")
+  actor       User     @relation(fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  @@index([createdAt])
+  @@index([actorUserId, createdAt], map: "authorization_audit_actor_created_idx")
+  @@index([targetKind, targetKey, createdAt], map: "authorization_audit_target_created_idx")
+  @@map("authorization_audit_records")
 }
 
 model ExternalIdentity {

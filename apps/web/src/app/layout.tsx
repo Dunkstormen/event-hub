@@ -6,6 +6,7 @@ import { PROJECT_DESCRIPTION, PROJECT_NAME } from "@event-hub/config/project";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 
 import "./globals.css";
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           {children}
         </main>
         <SiteFooter />
+        <Toaster position="bottom-right" richColors />
       </body>
     </html>
   );

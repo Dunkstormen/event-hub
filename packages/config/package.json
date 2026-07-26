@@ -20,6 +20,10 @@
     "./vatsim-connect": {
       "types": "./src/vatsim-connect.ts",
       "default": "./dist/vatsim-connect.js"
+    },
+    "./web-origin": {
+      "types": "./src/web-origin.ts",
+      "default": "./dist/web-origin.js"
     }
   },
   "scripts": {

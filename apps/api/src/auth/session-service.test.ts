@@ -146,6 +146,29 @@ describe("SessionService lifecycle", () => {
     });
   });
 
+  it("resolves the internal actor only for API authorization", async () => {
+    const service = createService(
+      createRepository({
+        findSessionByTokenHash: vi.fn(async () => ({
+          expiresAt: new Date("2026-07-25T13:00:00.000Z"),
+          revokedAt: null,
+          user: {
+            id: "user-1",
+            cid: "1234567",
+            status: "ACTIVE",
+            displayName: "Ada Lovelace",
+          },
+        })),
+      }),
+    );
+
+    await expect(service.authenticateActor(token)).resolves.toEqual({
+      id: "user-1",
+      cid: "1234567",
+      displayName: "Ada Lovelace",
+    });
+  });
+
   it.each([
     {
       reason: "expired",
