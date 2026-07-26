@@ -9,6 +9,7 @@ import { requireTestDatabaseUrl } from "@event-hub/database/testing";
 
 import { buildApp } from "../app.js";
 import { createControllerEligibilityAdministration } from "./administration.js";
+import { AuthorizationPolicy } from "../authorization/policy.js";
 import type {
   ControllerEligibilityProvider,
   NormalizedEligibilityBatch,
@@ -76,6 +77,7 @@ async function buildAuthorizedApp(actorUserId: string) {
       },
     },
     controllerEligibilityAdministration: administration,
+    authorizationPolicy: new AuthorizationPolicy(database),
     sessionConfiguration,
   });
   apps.push(app);

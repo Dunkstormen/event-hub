@@ -9,6 +9,7 @@ import { requireTestDatabaseUrl } from "@event-hub/database/testing";
 
 import { buildApp } from "../app.js";
 import { createAuthorizationAdministration } from "./administration.js";
+import { AuthorizationPolicy } from "./policy.js";
 
 const database = createDatabaseClient(requireTestDatabaseUrl());
 const administration = createAuthorizationAdministration(database);
@@ -35,6 +36,7 @@ async function clearAuthorizationState() {
 async function buildAuthorizedApp(actorUserId: string) {
   const app = buildApp({
     authorizationAdministration: administration,
+    authorizationPolicy: new AuthorizationPolicy(database),
     authorizationSessions: {
       async authenticateActor(token) {
         return token === sessionToken

@@ -2,10 +2,8 @@
 
 Issues #11, #12, and #13 establish the persistence, administration APIs, and
 administrator interfaces for Event Hub authorization and FIR membership.
-Issue #15 will apply these capabilities centrally to event and FIR-scoped
-operations. Until that issue lands, the role matrix and membership model
-protect their own management workflows but do not by themselves authorize
-every future domain operation.
+Issue #15 adds the central policy evaluator and reusable API guards that apply
+those grants to global, FIR-scoped, controller, and public-read decisions.
 
 ## Capability model
 
@@ -23,6 +21,42 @@ idempotently. Event Coordinator assignments require an explicit active FIR
 relation; they never infer scope from an airport prefix, role name, or browser
 claim. Global roles reject FIR scope, and FIR roles cannot receive a capability
 marked `GLOBAL_ONLY`.
+
+## Central policy evaluation
+
+The API evaluates current authorization state from the database for each
+protected operation. The effective result contains:
+
+- capability keys granted globally;
+- capability keys granted for each active, explicitly related FIR;
+- derived controller participation;
+- the active FIR memberships supported by usable controller evidence.
+
+Global grants supersede narrower grants for the same capability. FIR
+assignments for an inactive FIR do not authorize operations. Disabled or
+missing users produce no effective authorization even if old assignments or
+memberships remain in the database.
+
+`controllers.participate` is derived and is not a configurable role grant. A
+fresh rostered provider snapshot grants current controller participation.
+FIR-specific controller access additionally requires an active membership in
+that FIR. Manual memberships remain usable until an administrator revokes
+them; automatic memberships are usable only before their provider evidence
+deadline. This keeps general controller participation separate from explicit
+FIR scope and fails closed on stale automatic evidence.
+
+The reusable API guard distinguishes authentication from authorization:
+
+- a missing or invalid session returns `401 AUTHENTICATION_REQUIRED`;
+- an authenticated actor without the required global, FIR, administrator, or
+  controller permission returns `403 FORBIDDEN`;
+- both use the shared API error envelope.
+
+Event read policy is explicit even before event persistence and routes land.
+Published public content is readable anonymously. A non-public event is
+readable only by an authenticated actor with `events.manage` for its owning
+FIR. Issue #16 extends that decision with invited-FIR collaboration; issues
+#18 and #19 supply the event aggregate and route integration.
 
 `system.administrator` is the administrator marker, while
 `authorization.manage` grants role-matrix management. Administrator safety
@@ -90,9 +124,9 @@ The access-management interface is available at
 | `DELETE /v1/admin/authorization/assignments/{assignmentId}` | Revoke one assignment |
 
 Every endpoint requires an active session whose user has a global assignment
-granting `authorization.manage`. The API resolves that capability from the
-database for every request; a browser-supplied role or FIR claim is never
-trusted.
+granting `authorization.manage`. The API resolves that capability through the
+central policy evaluator for every request and repeats mutation checks inside
+the transaction; a browser-supplied role or FIR claim is never trusted.
 
 The UI previews the union of the user's existing and proposed capability
 grants before assignment. Global grants supersede narrower FIR grants in that
@@ -146,9 +180,11 @@ The membership-management interface is available at
 | `POST /v1/admin/controller-eligibility/{provider}/sync` | Run a configured provider immediately |
 
 Every endpoint requires an active user with a global assignment granting
-`fir-memberships.manage`. The UI keeps role administration and membership
-administration as separate workspaces so the capability can be delegated
-without broader authorization-management access.
+`fir-memberships.manage`. The central evaluator is shared by membership
+administration and provider synchronization, while membership mutations repeat
+the check inside their serializable transaction. The UI keeps role
+administration and membership administration as separate workspaces so the
+capability can be delegated without broader authorization-management access.
 
 ## Authorization audit records
 

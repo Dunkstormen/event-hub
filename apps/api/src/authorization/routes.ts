@@ -1,7 +1,6 @@
 import { Type } from "@sinclair/typebox";
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 
-import type { SessionConfiguration } from "@event-hub/config/session";
 import {
   API_ERROR_RESPONSE_SCHEMAS,
   API_PREFIX,
@@ -24,9 +23,11 @@ import {
   type CreateAuthorizationRole,
   type UpdateAuthorizationRole,
 } from "@event-hub/contracts";
+import { AUTHORIZATION_MANAGE_CAPABILITY } from "@event-hub/database";
 
 import { ApiError } from "../errors.js";
 import type { SessionService } from "../auth/session-service.js";
+import type { AuthorizationApiGuard } from "./api-guard.js";
 import {
   type AuthorizationAdministration,
   AuthorizationConflictError,
@@ -88,32 +89,20 @@ function translateAuthorizationError(error: unknown): never {
 }
 
 async function requireActor(
-  request: {
-    cookies: Record<string, string | undefined>;
-  },
-  sessions: AuthorizationSessions,
-  configuration: SessionConfiguration,
+  request: FastifyRequest,
+  guard: AuthorizationApiGuard,
 ) {
-  const actor = await sessions.authenticateActor(
-    request.cookies[configuration.cookieName],
+  return guard.requireGlobal(
+    request,
+    AUTHORIZATION_MANAGE_CAPABILITY,
+    "You cannot manage authorization.",
   );
-
-  if (actor === null) {
-    throw new ApiError(
-      401,
-      "AUTHENTICATION_REQUIRED",
-      "Authentication is required.",
-    );
-  }
-
-  return actor;
 }
 
 export function registerAuthorizationAdministrationRoutes(
   app: FastifyInstance,
   administration: AuthorizationAdministration,
-  sessions: AuthorizationSessions,
-  sessionConfiguration: SessionConfiguration,
+  guard: AuthorizationApiGuard,
 ) {
   app.get(
     `${API_PREFIX}/admin/authorization`,
@@ -127,11 +116,7 @@ export function registerAuthorizationAdministrationRoutes(
     },
     async (request, reply) => {
       reply.header("Cache-Control", "no-store");
-      const actor = await requireActor(
-        request,
-        sessions,
-        sessionConfiguration,
-      );
+      const actor = await requireActor(request, guard);
 
       try {
         return await administration.getOverview(actor.id);
@@ -154,11 +139,7 @@ export function registerAuthorizationAdministrationRoutes(
     },
     async (request, reply) => {
       reply.header("Cache-Control", "no-store");
-      const actor = await requireActor(
-        request,
-        sessions,
-        sessionConfiguration,
-      );
+      const actor = await requireActor(request, guard);
       const limit = request.query.limit ?? defaultUserPageSize;
 
       try {
@@ -203,11 +184,7 @@ export function registerAuthorizationAdministrationRoutes(
       },
     },
     async (request, reply) => {
-      const actor = await requireActor(
-        request,
-        sessions,
-        sessionConfiguration,
-      );
+      const actor = await requireActor(request, guard);
 
       try {
         const role = await administration.createRole(
@@ -237,11 +214,7 @@ export function registerAuthorizationAdministrationRoutes(
       },
     },
     async (request) => {
-      const actor = await requireActor(
-        request,
-        sessions,
-        sessionConfiguration,
-      );
+      const actor = await requireActor(request, guard);
 
       try {
         return await administration.updateRole(
@@ -267,11 +240,7 @@ export function registerAuthorizationAdministrationRoutes(
       },
     },
     async (request, reply) => {
-      const actor = await requireActor(
-        request,
-        sessions,
-        sessionConfiguration,
-      );
+      const actor = await requireActor(request, guard);
 
       try {
         const deleted = await administration.deleteRole(
@@ -306,11 +275,7 @@ export function registerAuthorizationAdministrationRoutes(
       },
     },
     async (request, reply) => {
-      const actor = await requireActor(
-        request,
-        sessions,
-        sessionConfiguration,
-      );
+      const actor = await requireActor(request, guard);
 
       try {
         const assignment = await administration.assignRole(actor.id, {
@@ -339,11 +304,7 @@ export function registerAuthorizationAdministrationRoutes(
       },
     },
     async (request, reply) => {
-      const actor = await requireActor(
-        request,
-        sessions,
-        sessionConfiguration,
-      );
+      const actor = await requireActor(request, guard);
 
       try {
         const revoked = await administration.revokeAssignment(

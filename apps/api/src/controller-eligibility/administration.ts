@@ -7,6 +7,10 @@ import type { PrismaClient } from "@event-hub/database";
 import { FIR_MEMBERSHIPS_MANAGE_CAPABILITY } from "@event-hub/database";
 
 import {
+  AuthorizationPolicyDeniedError,
+  requireGlobalCapability,
+} from "../authorization/policy.js";
+import {
   ControllerEligibilitySynchronization,
 } from "./synchronization.js";
 
@@ -53,28 +57,17 @@ function runStatus(status: "RUNNING" | "SUCCEEDED" | "FAILED") {
 }
 
 async function assertManager(database: PrismaClient, actorUserId: string) {
-  const actor = await database.user.findFirst({
-    where: {
-      id: actorUserId,
-      status: "ACTIVE",
-      roleAssignments: {
-        some: {
-          firId: null,
-          role: {
-            capabilities: {
-              some: {
-                capabilityKey: FIR_MEMBERSHIPS_MANAGE_CAPABILITY,
-              },
-            },
-          },
-        },
-      },
-    },
-    select: { id: true },
-  });
-
-  if (actor === null) {
-    throw new ControllerEligibilityDeniedError();
+  try {
+    await requireGlobalCapability(
+      database,
+      actorUserId,
+      FIR_MEMBERSHIPS_MANAGE_CAPABILITY,
+    );
+  } catch (error) {
+    if (error instanceof AuthorizationPolicyDeniedError) {
+      throw new ControllerEligibilityDeniedError();
+    }
+    throw error;
   }
 }
 
