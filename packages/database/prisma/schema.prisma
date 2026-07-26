@@ -12,6 +12,16 @@ enum UserStatus {
   DISABLED
 }
 
+enum RoleScope {
+  GLOBAL
+  FIR
+}
+
+enum CapabilityScope {
+  GLOBAL_ONLY
+  GLOBAL_OR_FIR
+}
+
 model Vacc {
   id        String   @id @db.VarChar(64)
   name      String   @db.VarChar(191)
@@ -23,15 +33,16 @@ model Vacc {
 }
 
 model Fir {
-  id        String    @id @default(cuid()) @db.VarChar(30)
-  icaoCode  String    @unique @map("icao_code") @db.Char(4)
-  name      String    @db.VarChar(191)
-  active    Boolean   @default(true)
-  vaccId    String    @map("vacc_id") @db.VarChar(64)
-  vacc      Vacc      @relation(fields: [vaccId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  airports  Airport[]
-  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+  id              String               @id @default(cuid()) @db.VarChar(30)
+  icaoCode        String               @unique @map("icao_code") @db.Char(4)
+  name            String               @db.VarChar(191)
+  active          Boolean              @default(true)
+  vaccId          String               @map("vacc_id") @db.VarChar(64)
+  vacc            Vacc                 @relation(fields: [vaccId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  airports        Airport[]
+  roleAssignments UserRoleAssignment[]
+  createdAt       DateTime             @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.DateTime(3)
 
   @@index([vaccId, active])
   @@map("firs")
@@ -52,17 +63,75 @@ model Airport {
 }
 
 model User {
-  id                  String             @id @default(cuid()) @db.VarChar(30)
-  cid                 String             @unique @db.VarChar(16)
-  status              UserStatus         @default(ACTIVE)
-  lastAuthenticatedAt DateTime?          @map("last_authenticated_at") @db.DateTime(3)
+  id                  String               @id @default(cuid()) @db.VarChar(30)
+  cid                 String               @unique @db.VarChar(16)
+  status              UserStatus           @default(ACTIVE)
+  lastAuthenticatedAt DateTime?            @map("last_authenticated_at") @db.DateTime(3)
   identities          ExternalIdentity[]
   sessions            Session[]
-  createdAt           DateTime           @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt           DateTime           @updatedAt @map("updated_at") @db.DateTime(3)
+  roleAssignments     UserRoleAssignment[]
+  createdAt           DateTime             @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt           DateTime             @updatedAt @map("updated_at") @db.DateTime(3)
 
   @@index([status])
   @@map("users")
+}
+
+model Capability {
+  key         String           @id @db.VarChar(96)
+  name        String           @db.VarChar(191)
+  description String           @db.VarChar(500)
+  scope       CapabilityScope
+  roles       RoleCapability[]
+  createdAt   DateTime         @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@map("capabilities")
+}
+
+model Role {
+  id           String               @id @default(cuid()) @db.VarChar(30)
+  key          String               @unique @db.VarChar(64)
+  name         String               @db.VarChar(191)
+  description  String               @db.VarChar(500)
+  scope        RoleScope
+  protected    Boolean              @default(false)
+  capabilities RoleCapability[]
+  assignments  UserRoleAssignment[]
+  createdAt    DateTime             @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt    DateTime             @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@index([scope])
+  @@map("roles")
+}
+
+model RoleCapability {
+  roleId        String     @map("role_id") @db.VarChar(30)
+  capabilityKey String     @map("capability_key") @db.VarChar(96)
+  role          Role       @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  capability    Capability @relation(fields: [capabilityKey], references: [key], onDelete: Restrict, onUpdate: Cascade)
+  createdAt     DateTime   @default(now()) @map("created_at") @db.DateTime(3)
+
+  @@id([roleId, capabilityKey])
+  @@index([capabilityKey])
+  @@map("role_capabilities")
+}
+
+model UserRoleAssignment {
+  id        String   @id @default(cuid()) @db.VarChar(30)
+  userId    String   @map("user_id") @db.VarChar(30)
+  roleId    String   @map("role_id") @db.VarChar(30)
+  firId     String?  @map("fir_id") @db.VarChar(30)
+  scopeKey  String   @map("scope_key") @db.VarChar(30)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  fir       Fir?     @relation(fields: [firId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  @@unique([userId, roleId, scopeKey])
+  @@index([roleId, scopeKey])
+  @@index([firId, userId])
+  @@map("user_role_assignments")
 }
 
 model ExternalIdentity {

@@ -5,6 +5,7 @@ import {
   type SessionConfiguration,
 } from "@event-hub/config/session";
 import { createDatabaseClient } from "@event-hub/database";
+import { seedAuthorizationModel } from "@event-hub/database";
 import { requireTestDatabaseUrl } from "@event-hub/database/testing";
 
 import { buildApp } from "../app.js";
@@ -39,6 +40,7 @@ async function clearIdentityState() {
 
 beforeAll(async () => {
   await clearIdentityState();
+  await seedAuthorizationModel(database);
   identityStatePrepared = true;
 });
 
