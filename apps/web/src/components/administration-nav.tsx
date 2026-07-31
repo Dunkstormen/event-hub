@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { KeyRoundIcon, MapPinnedIcon } from "lucide-react";
+import {
+  KeyRoundIcon,
+  MapPinnedIcon,
+  ScrollTextIcon,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -17,6 +21,11 @@ const administrationNavigation = [
     label: "FIR memberships",
     icon: MapPinnedIcon,
   },
+  {
+    href: "/administration/audit",
+    label: "Audit log",
+    icon: ScrollTextIcon,
+  },
 ] as const;
 
 export function AdministrationNav() {
@@ -27,7 +36,7 @@ export function AdministrationNav() {
       aria-label="Administration sections"
       className="mb-5 overflow-x-auto rounded-xl bg-card p-1 ring-1 ring-foreground/10"
     >
-      <ul className="grid grid-cols-2 gap-1 sm:flex sm:min-w-max">
+      <ul className="grid grid-cols-3 gap-1 sm:flex sm:min-w-max">
         {administrationNavigation.map((item) => {
           const active =
             pathname === item.href ||

@@ -89,10 +89,10 @@ removes the previous one. See [authorization.md](authorization.md) for the
 bootstrap and lockout-recovery procedure, and
 [reference-data.md](reference-data.md) for the geographic seed policy.
 
-Administrator role, capability, and assignment mutations write immutable
-authorization audit rows transactionally. Audit actors use restrictive foreign
-keys so deleting a user cannot silently orphan access history. See
-[authorization.md](authorization.md) for the mutation and retention boundary.
+Security-sensitive mutations write append-only `audit_records` rows
+transactionally. Audit actors use restrictive foreign keys so deleting a user
+cannot silently orphan access history. See [auditing.md](auditing.md) for the
+mutation, sensitive-data, and administrator-read boundaries.
 
 ## Test isolation
 

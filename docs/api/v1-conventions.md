@@ -127,6 +127,11 @@ produce an audit record in the same commit. Scope conflicts return
 `400 BAD_REQUEST`; protected-role, in-use-role, duplicate-key, and last-admin
 conflicts return `409 CONFLICT`.
 
+`GET /v1/admin/audit` requires the protected `system.administrator`
+capability rather than a delegable domain-management capability. It exposes
+filtered, cursor-paginated reads with before/after state. The API intentionally
+defines no update or delete operation for audit records.
+
 ## Pagination, filtering, and sorting
 
 Collection endpoints use cursor pagination:
