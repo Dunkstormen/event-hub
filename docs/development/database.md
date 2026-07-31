@@ -94,6 +94,9 @@ transactionally. Audit actors use restrictive foreign keys so deleting a user
 cannot silently orphan access history. See [auditing.md](auditing.md) for the
 mutation, sensitive-data, and administrator-read boundaries.
 
+Event ownership, lifecycle, and timezone-safe persistence rules are described
+in [event-aggregate.md](event-aggregate.md).
+
 ## Test isolation
 
 Test database operations require `TEST_DATABASE_URL`. They never fall back to
