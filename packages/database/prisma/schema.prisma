@@ -63,6 +63,18 @@ enum ControllerEndorsementKind {
   VISITING
 }
 
+enum EventLifecycleState {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  ARCHIVED
+}
+
+enum EventRosteringType {
+  OPEN_INTEREST
+  PREDEFINED
+}
+
 model Vacc {
   id        String   @id @db.VarChar(64)
   name      String   @db.VarChar(191)
@@ -74,54 +86,109 @@ model Vacc {
 }
 
 model Fir {
-  id              String               @id @default(cuid()) @db.VarChar(30)
-  icaoCode        String               @unique @map("icao_code") @db.Char(4)
-  name            String               @db.VarChar(191)
-  active          Boolean              @default(true)
-  vaccId          String               @map("vacc_id") @db.VarChar(64)
-  vacc            Vacc                 @relation(fields: [vaccId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  airports        Airport[]
-  roleAssignments UserRoleAssignment[]
-  memberships     FirMembership[]
-  createdAt       DateTime             @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt       DateTime             @updatedAt @map("updated_at") @db.DateTime(3)
+  id                 String               @id @default(cuid()) @db.VarChar(30)
+  icaoCode           String               @unique @map("icao_code") @db.Char(4)
+  name               String               @db.VarChar(191)
+  active             Boolean              @default(true)
+  vaccId             String               @map("vacc_id") @db.VarChar(64)
+  vacc               Vacc                 @relation(fields: [vaccId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  airports           Airport[]
+  roleAssignments    UserRoleAssignment[]
+  memberships        FirMembership[]
+  ownedEvents        Event[]              @relation("EventOwnerFir")
+  eventParticipation EventFir[]
+  createdAt          DateTime             @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt          DateTime             @updatedAt @map("updated_at") @db.DateTime(3)
 
   @@index([vaccId, active])
   @@map("firs")
 }
 
 model Airport {
-  id        String   @id @default(cuid()) @db.VarChar(30)
-  icaoCode  String   @unique @map("icao_code") @db.Char(4)
-  name      String   @db.VarChar(191)
-  active    Boolean  @default(true)
-  firId     String   @map("fir_id") @db.VarChar(30)
-  fir       Fir      @relation(fields: [firId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  id                 String         @id @default(cuid()) @db.VarChar(30)
+  icaoCode           String         @unique @map("icao_code") @db.Char(4)
+  name               String         @db.VarChar(191)
+  active             Boolean        @default(true)
+  firId              String         @map("fir_id") @db.VarChar(30)
+  fir                Fir            @relation(fields: [firId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  eventParticipation EventAirport[]
+  createdAt          DateTime       @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt          DateTime       @updatedAt @map("updated_at") @db.DateTime(3)
 
   @@index([firId, active])
   @@map("airports")
 }
 
 model User {
-  id                        String                     @id @default(cuid()) @db.VarChar(30)
-  cid                       String                     @unique @db.VarChar(16)
-  status                    UserStatus                 @default(ACTIVE)
-  lastAuthenticatedAt       DateTime?                  @map("last_authenticated_at") @db.DateTime(3)
-  identities                ExternalIdentity[]
-  sessions                  Session[]
-  roleAssignments           UserRoleAssignment[]
-  firMemberships            FirMembership[]            @relation("FirMembershipUser")
-  firMembershipChanges      FirMembership[]            @relation("FirMembershipChangedBy")
-  eligibilitySnapshots      ControllerEligibilitySnapshot[]
-  controllerEndorsements    ControllerEndorsement[]
-  auditRecords              AuditRecord[]
-  createdAt                 DateTime                   @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt                 DateTime                   @updatedAt @map("updated_at") @db.DateTime(3)
+  id                     String                          @id @default(cuid()) @db.VarChar(30)
+  cid                    String                          @unique @db.VarChar(16)
+  status                 UserStatus                      @default(ACTIVE)
+  lastAuthenticatedAt    DateTime?                       @map("last_authenticated_at") @db.DateTime(3)
+  identities             ExternalIdentity[]
+  sessions               Session[]
+  roleAssignments        UserRoleAssignment[]
+  firMemberships         FirMembership[]                 @relation("FirMembershipUser")
+  firMembershipChanges   FirMembership[]                 @relation("FirMembershipChangedBy")
+  eligibilitySnapshots   ControllerEligibilitySnapshot[]
+  controllerEndorsements ControllerEndorsement[]
+  auditRecords           AuditRecord[]
+  createdEvents          Event[]                         @relation("EventCreator")
+  createdAt              DateTime                        @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt              DateTime                        @updatedAt @map("updated_at") @db.DateTime(3)
 
   @@index([status])
   @@map("users")
+}
+
+model Event {
+  id                    String              @id @default(cuid()) @db.VarChar(30)
+  name                  String              @db.VarChar(191)
+  shortDescription      String              @map("short_description") @db.VarChar(500)
+  description           String              @db.Text
+  bannerStorageKey      String?             @map("banner_storage_key") @db.VarChar(191)
+  rosteringType         EventRosteringType  @map("rostering_type")
+  lifecycleState        EventLifecycleState @default(DRAFT) @map("lifecycle_state")
+  cancellationReason    String?             @map("cancellation_reason") @db.VarChar(500)
+  localStart            String              @map("local_start") @db.Char(19)
+  localEnd              String              @map("local_end") @db.Char(19)
+  timeZone              String              @map("time_zone") @db.VarChar(64)
+  ownerFirId            String              @map("owner_fir_id") @db.VarChar(30)
+  createdByUserId       String              @map("created_by_user_id") @db.VarChar(30)
+  ownerFir              Fir                 @relation("EventOwnerFir", fields: [ownerFirId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdBy             User                @relation("EventCreator", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  participatingFirs     EventFir[]
+  participatingAirports EventAirport[]
+  createdAt             DateTime            @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt             DateTime            @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@index([ownerFirId, lifecycleState])
+  @@index([lifecycleState, localStart])
+  @@index([createdByUserId, createdAt])
+  @@map("events")
+}
+
+model EventFir {
+  eventId   String   @map("event_id") @db.VarChar(30)
+  firId     String   @map("fir_id") @db.VarChar(30)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  fir       Fir      @relation(fields: [firId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  @@id([eventId, firId])
+  @@index([firId, eventId])
+  @@map("event_firs")
+}
+
+model EventAirport {
+  eventId   String   @map("event_id") @db.VarChar(30)
+  airportId String   @map("airport_id") @db.VarChar(30)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  airport   Airport  @relation(fields: [airportId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  @@id([eventId, airportId])
+  @@index([airportId, eventId])
+  @@map("event_airports")
 }
 
 model Capability {
