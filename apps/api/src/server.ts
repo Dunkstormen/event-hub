@@ -12,6 +12,7 @@ import { parseVatsimConnectConfiguration } from "@event-hub/config/vatsim-connec
 import { createDatabaseClient } from "@event-hub/database";
 
 import { buildApp } from "./app.js";
+import { createAuditAdministration } from "./audit/administration.js";
 import { createIdentitySessionRepository } from "./auth/repository.js";
 import { SessionService } from "./auth/session-service.js";
 import { OAuthTransactionManager } from "./auth/oauth-transaction.js";
@@ -95,6 +96,7 @@ const vatsimAuthentication =
         new OAuthTransactionManager(),
       );
 const app = buildApp({
+  auditAdministration: createAuditAdministration(database),
   authorizationAdministration:
     createAuthorizationAdministration(database),
   authorizationPolicy: new AuthorizationPolicy(database),

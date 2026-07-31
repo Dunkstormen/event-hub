@@ -53,7 +53,7 @@ export function SiteHeader() {
           <span className="text-lg sm:text-xl">Event Hub</span>
         </Link>
 
-        <nav aria-label="Primary navigation" className="hidden h-full md:block">
+        <nav aria-label="Primary navigation" className="hidden h-full lg:block">
           <ul className="flex h-full items-center gap-1">
             {navigation.map((item) => {
               const active = isCurrentRoute(pathname, item.href);
@@ -77,7 +77,7 @@ export function SiteHeader() {
           </ul>
         </nav>
 
-        <div className="ml-auto hidden md:block">
+        <div className="ml-auto hidden lg:block">
           <Link
             href="/sign-in"
             className={buttonVariants({ size: "lg", variant: "outline" })}
@@ -87,7 +87,7 @@ export function SiteHeader() {
           </Link>
         </div>
 
-        <div className="ml-auto md:hidden">
+        <div className="ml-auto lg:hidden">
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger
               render={

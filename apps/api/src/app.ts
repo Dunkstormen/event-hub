@@ -26,6 +26,8 @@ import {
   registerSessionRoutes,
   type SessionLifecycle,
 } from "./auth/routes.js";
+import type { AuditAdministration } from "./audit/administration.js";
+import { registerAuditAdministrationRoutes } from "./audit/routes.js";
 import type { VatsimAuthenticationFlow } from "./auth/vatsim-authentication.js";
 import { registerVatsimAuthenticationRoutes } from "./auth/vatsim-routes.js";
 import type { AuthorizationAdministration } from "./authorization/administration.js";
@@ -47,6 +49,7 @@ import {
 import { registerReferenceDataRoutes } from "./reference-data/routes.js";
 
 type BuildAppOptions = Pick<FastifyServerOptions, "logger"> & {
+  auditAdministration?: AuditAdministration | null;
   authorizationAdministration?: AuthorizationAdministration | null;
   authorizationPolicy?: AuthorizationPolicy | null;
   authorizationSessions?: AuthorizationSessions | null;
@@ -61,6 +64,7 @@ type BuildAppOptions = Pick<FastifyServerOptions, "logger"> & {
 };
 
 export function buildApp({
+  auditAdministration = null,
   authorizationAdministration = null,
   authorizationPolicy = null,
   authorizationSessions = null,
@@ -113,6 +117,16 @@ export function buildApp({
           authorizationPolicy,
           sessionConfiguration,
         );
+  if (
+    auditAdministration !== null &&
+    authorizationGuard !== null
+  ) {
+    registerAuditAdministrationRoutes(
+      app,
+      auditAdministration,
+      authorizationGuard,
+    );
+  }
   if (
     authorizationAdministration !== null &&
     authorizationGuard !== null

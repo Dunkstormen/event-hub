@@ -29,7 +29,7 @@ const administration = createAuthorizationAdministration(database);
 async function clearAuthorizationState() {
   await database.session.deleteMany();
   await database.externalIdentity.deleteMany();
-  await database.authorizationAuditRecord.deleteMany();
+  await database.auditRecord.deleteMany();
   await database.firMembership.deleteMany();
   await database.userRoleAssignment.deleteMany();
   await database.roleCapability.deleteMany();
@@ -365,7 +365,7 @@ describe("administrator management and auditing", () => {
       administration.deleteRole(actorUserId, "event-planner"),
     ).resolves.toBe(true);
 
-    const audit = await database.authorizationAuditRecord.findMany({
+    const audit = await database.auditRecord.findMany({
       orderBy: { createdAt: "asc" },
     });
 
@@ -426,7 +426,7 @@ describe("administrator management and auditing", () => {
       }),
     ]);
     await expect(
-      database.authorizationAuditRecord.count({
+      database.auditRecord.count({
         where: { action: "authorization.assignment.created" },
       }),
     ).resolves.toBe(1);

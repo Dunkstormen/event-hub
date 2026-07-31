@@ -18,6 +18,7 @@ import {
   AuthorizationPolicyDeniedError,
   requireGlobalCapability,
 } from "./policy.js";
+import { appendAuditRecord } from "../audit/service.js";
 
 const maximumTransactionAttempts = 4;
 const vatsimIdentityProvider = "vatsim";
@@ -338,37 +339,6 @@ function mapUser(
   };
 }
 
-type AuditInput = Readonly<{
-  actorUserId: string;
-  action: string;
-  targetKind: string;
-  targetKey: string;
-  summary: string;
-  beforeState?: Prisma.InputJsonValue;
-  afterState?: Prisma.InputJsonValue;
-}>;
-
-async function createAuditRecord(
-  transaction: Prisma.TransactionClient,
-  input: AuditInput,
-) {
-  await transaction.authorizationAuditRecord.create({
-    data: {
-      actorUserId: input.actorUserId,
-      action: input.action,
-      targetKind: input.targetKind,
-      targetKey: input.targetKey,
-      summary: input.summary,
-      ...(input.beforeState === undefined
-        ? {}
-        : { beforeState: input.beforeState }),
-      ...(input.afterState === undefined
-        ? {}
-        : { afterState: input.afterState }),
-    },
-  });
-}
-
 async function validatedCapabilities(
   transaction: Prisma.TransactionClient,
   scope: "GLOBAL" | "FIR",
@@ -483,7 +453,7 @@ export function createAuthorizationAdministration(
               },
               orderBy: { icaoCode: "asc" },
             }),
-            transaction.authorizationAuditRecord.findMany({
+            transaction.auditRecord.findMany({
               include: {
                 actor: {
                   select: {
@@ -653,7 +623,7 @@ export function createAuthorizationAdministration(
         });
         const afterState = capabilityState(role);
 
-        await createAuditRecord(transaction, {
+        await appendAuditRecord(transaction, {
           actorUserId,
           action: "authorization.role.created",
           targetKind: "role",
@@ -751,7 +721,7 @@ export function createAuthorizationAdministration(
         const updated = await roleWithCapabilities(transaction, role.id);
         const afterState = capabilityState(updated);
 
-        await createAuditRecord(transaction, {
+        await appendAuditRecord(transaction, {
           actorUserId,
           action: "authorization.role.updated",
           targetKind: "role",
@@ -791,7 +761,7 @@ export function createAuthorizationAdministration(
 
         const beforeState = capabilityState(role);
         await transaction.role.delete({ where: { id: role.id } });
-        await createAuditRecord(transaction, {
+        await appendAuditRecord(transaction, {
           actorUserId,
           action: "authorization.role.deleted",
           targetKind: "role",
@@ -904,7 +874,7 @@ export function createAuthorizationAdministration(
           fir,
         });
 
-        await createAuditRecord(transaction, {
+        await appendAuditRecord(transaction, {
           actorUserId,
           action: "authorization.assignment.created",
           targetKind: "user",
@@ -970,7 +940,7 @@ export function createAuthorizationAdministration(
           throw new LastAdministratorError();
         }
 
-        await createAuditRecord(transaction, {
+        await appendAuditRecord(transaction, {
           actorUserId,
           action: "authorization.assignment.revoked",
           targetKind: "user",
@@ -1018,7 +988,7 @@ export function createAuthorizationAdministration(
           throw new LastAdministratorError();
         }
 
-        await createAuditRecord(transaction, {
+        await appendAuditRecord(transaction, {
           actorUserId,
           action: "authorization.user.status-updated",
           targetKind: "user",

@@ -230,16 +230,18 @@ capability can be delegated without broader authorization-management access.
 ## Authorization audit records
 
 Each successful role, assignment, account, or membership mutation writes an
-`authorization_audit_records` row in the same serializable transaction as the
-change. Records identify the acting user, action, target, human-readable
-summary, timestamp, and JSON before/after states where applicable. Failed,
-rolled-back, and idempotent no-op requests do not create misleading audit
-entries.
+`audit_records` row through the shared application audit writer in the same
+serializable transaction as the change. Records identify the acting user,
+action, target, human-readable summary, timestamp, and JSON before/after states
+where applicable. Failed, rolled-back, and idempotent no-op requests do not
+create misleading audit entries.
 
 Audit rows retain their actor relation and are not deleted with roles,
 assignments, or current membership-state changes. The two administration
-interfaces show the latest 25 records relevant to their workspace; the
-database remains the source of truth for older history.
+interfaces show the latest 25 records relevant to their workspace. Protected
+administrators can filter and inspect the complete cross-domain history at
+`/administration/audit`. See [auditing.md](auditing.md) for the append-only,
+sensitive-data, and domain-adoption boundaries.
 
 ## Initial administrator provisioning
 

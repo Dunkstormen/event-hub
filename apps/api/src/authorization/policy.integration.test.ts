@@ -44,7 +44,7 @@ const apps: ReturnType<typeof buildApp>[] = [];
 async function clearAuthorizationState() {
   await database.session.deleteMany();
   await database.externalIdentity.deleteMany();
-  await database.authorizationAuditRecord.deleteMany();
+  await database.auditRecord.deleteMany();
   await database.controllerEndorsement.deleteMany();
   await database.controllerEligibilitySnapshot.deleteMany();
   await database.firMembership.deleteMany();

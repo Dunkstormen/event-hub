@@ -116,7 +116,7 @@ model User {
   firMembershipChanges      FirMembership[]            @relation("FirMembershipChangedBy")
   eligibilitySnapshots      ControllerEligibilitySnapshot[]
   controllerEndorsements    ControllerEndorsement[]
-  authorizationAuditRecords AuthorizationAuditRecord[]
+  auditRecords              AuditRecord[]
   createdAt                 DateTime                   @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt                 DateTime                   @updatedAt @map("updated_at") @db.DateTime(3)
 
@@ -304,7 +304,7 @@ model KnownControllerPosition {
   @@map("known_controller_positions")
 }
 
-model AuthorizationAuditRecord {
+model AuditRecord {
   id          String   @id @default(cuid()) @db.VarChar(30)
   actorUserId String   @map("actor_user_id") @db.VarChar(30)
   action      String   @db.VarChar(64)
@@ -317,9 +317,9 @@ model AuthorizationAuditRecord {
   createdAt   DateTime @default(now()) @map("created_at") @db.DateTime(3)
 
   @@index([createdAt])
-  @@index([actorUserId, createdAt], map: "authorization_audit_actor_created_idx")
-  @@index([targetKind, targetKey, createdAt], map: "authorization_audit_target_created_idx")
-  @@map("authorization_audit_records")
+  @@index([actorUserId, createdAt], map: "audit_actor_created_idx")
+  @@index([targetKind, targetKey, createdAt], map: "audit_target_created_idx")
+  @@map("audit_records")
 }
 
 model ExternalIdentity {

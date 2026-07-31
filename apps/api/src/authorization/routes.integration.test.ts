@@ -24,7 +24,7 @@ const sessionToken = "A".repeat(43);
 async function clearAuthorizationState() {
   await database.session.deleteMany();
   await database.externalIdentity.deleteMany();
-  await database.authorizationAuditRecord.deleteMany();
+  await database.auditRecord.deleteMany();
   await database.firMembership.deleteMany();
   await database.userRoleAssignment.deleteMany();
   await database.roleCapability.deleteMany();

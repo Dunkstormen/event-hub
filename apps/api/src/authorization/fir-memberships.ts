@@ -12,6 +12,7 @@ import {
   AuthorizationPolicyDeniedError,
   requireGlobalCapability,
 } from "./policy.js";
+import { appendAuditRecord } from "../audit/service.js";
 
 const maximumTransactionAttempts = 4;
 const vatsimIdentityProvider = "vatsim";
@@ -271,7 +272,7 @@ export function createFirMembershipAdministration(
             },
             orderBy: { icaoCode: "asc" },
           }),
-          transaction.authorizationAuditRecord.findMany({
+          transaction.auditRecord.findMany({
             where: { targetKind: "fir-membership" },
             include: {
               actor: {
@@ -450,18 +451,16 @@ export function createFirMembershipAdministration(
               ? "fir-membership.reactivated"
               : "fir-membership.overridden";
 
-        await transaction.authorizationAuditRecord.create({
-          data: {
-            actorUserId,
-            action,
-            targetKind: "fir-membership",
-            targetKey: `${user.cid}:${fir.icaoCode}`,
-            summary: `Granted CID ${user.cid} membership in ${fir.icaoCode}: ${reason}`,
-            ...(existing === null
-              ? {}
-              : { beforeState: membershipState(mapMembership(existing)) }),
-            afterState: membershipState(mapped),
-          },
+        await appendAuditRecord(transaction, {
+          actorUserId,
+          action,
+          targetKind: "fir-membership",
+          targetKey: `${user.cid}:${fir.icaoCode}`,
+          summary: `Granted CID ${user.cid} membership in ${fir.icaoCode}: ${reason}`,
+          ...(existing === null
+            ? {}
+            : { beforeState: membershipState(mapMembership(existing)) }),
+          afterState: membershipState(mapped),
         });
 
         return mapped;
@@ -525,16 +524,14 @@ export function createFirMembershipAdministration(
         });
         const mapped = mapMembership(membership);
 
-        await transaction.authorizationAuditRecord.create({
-          data: {
-            actorUserId,
-            action: "fir-membership.revoked",
-            targetKind: "fir-membership",
-            targetKey: `${existing.user.cid}:${fir.icaoCode}`,
-            summary: `Revoked CID ${existing.user.cid} membership in ${fir.icaoCode}: ${reason}`,
-            beforeState,
-            afterState: membershipState(mapped),
-          },
+        await appendAuditRecord(transaction, {
+          actorUserId,
+          action: "fir-membership.revoked",
+          targetKind: "fir-membership",
+          targetKey: `${existing.user.cid}:${fir.icaoCode}`,
+          summary: `Revoked CID ${existing.user.cid} membership in ${fir.icaoCode}: ${reason}`,
+          beforeState,
+          afterState: membershipState(mapped),
         });
 
         return mapped;

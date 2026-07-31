@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 import {
   API_PREFIX,
   API_VERSION,
+  AuditRecordSchema,
+  AuditRecordsQuerySchema,
   AuthenticatedSessionSchema,
   AuthorizationOverviewSchema,
   CreateAuthorizationRoleSchema,
@@ -138,6 +140,40 @@ describe("API contracts", () => {
         recentAuditRecords: [],
       }),
     ).toBe(true);
+  });
+
+  it("defines complete filterable audit records", () => {
+    expect(
+      Value.Check(AuditRecordSchema, {
+        id: "audit-1",
+        action: "authorization.role.updated",
+        actor: {
+          cid: "10000001",
+          displayName: "Ada Administrator",
+        },
+        targetKind: "role",
+        targetKey: "event-coordinator",
+        summary: "Updated role Event Coordinator.",
+        beforeState: { capabilityKeys: ["events.manage"] },
+        afterState: {
+          capabilityKeys: ["events.manage", "rosters.manage"],
+        },
+        createdAt: "2026-07-31T12:00:00.000Z",
+      }),
+    ).toBe(true);
+    expect(
+      Value.Check(AuditRecordsQuerySchema, {
+        actorCid: "10000001",
+        targetKind: "fir-membership",
+        from: "2026-07-01T00:00:00.000Z",
+        to: "2026-07-31T23:59:59.000Z",
+      }),
+    ).toBe(true);
+    expect(
+      Value.Check(AuditRecordsQuerySchema, {
+        targetKind: "FIR membership",
+      }),
+    ).toBe(false);
   });
 
   it("defines FIR membership provenance and manual reason contracts", () => {

@@ -19,7 +19,7 @@ const administration = createFirMembershipAdministration(database);
 async function clearState() {
   await database.session.deleteMany();
   await database.externalIdentity.deleteMany();
-  await database.authorizationAuditRecord.deleteMany();
+  await database.auditRecord.deleteMany();
   await database.firMembership.deleteMany();
   await database.userRoleAssignment.deleteMany();
   await database.roleCapability.deleteMany();
@@ -121,7 +121,7 @@ describe("FIR membership administration", () => {
       }),
     ]);
     await expect(
-      database.authorizationAuditRecord.count({
+      database.auditRecord.count({
         where: { action: "fir-membership.assigned" },
       }),
     ).resolves.toBe(2);
@@ -167,7 +167,7 @@ describe("FIR membership administration", () => {
     );
     expect(page.items[0]?.memberships[0]?.status).toBe("revoked");
     expect(
-      await database.authorizationAuditRecord.findMany({
+      await database.auditRecord.findMany({
         orderBy: { createdAt: "asc" },
         select: { action: true },
       }),
@@ -200,7 +200,7 @@ describe("FIR membership administration", () => {
       reason: "Provider data is incomplete; manually verified.",
     });
     const audit =
-      await database.authorizationAuditRecord.findFirstOrThrow();
+      await database.auditRecord.findFirstOrThrow();
 
     expect(membership).toMatchObject({
       source: "manual",
