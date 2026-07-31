@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `events`
+    ADD COLUMN `version` INTEGER UNSIGNED NOT NULL DEFAULT 1;
