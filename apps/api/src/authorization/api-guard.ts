@@ -8,6 +8,8 @@ import {
   AuthorizationPolicy,
   AuthorizationPolicyDeniedError,
   canReadEvent,
+  type EventCollaborationAction,
+  type EventCollaborationTarget,
   type EventReadTarget,
 } from "./policy.js";
 
@@ -126,6 +128,26 @@ export class AuthorizationApiGuard {
 
     try {
       await this.#policy.requireController(actor.id, firIcaoCode);
+    } catch (error) {
+      if (error instanceof AuthorizationPolicyDeniedError) {
+        forbidden(message);
+      }
+      throw error;
+    }
+
+    return actor;
+  }
+
+  async requireEvent(
+    request: RequestWithCookies,
+    event: EventCollaborationTarget,
+    action: EventCollaborationAction,
+    message = "You cannot manage this event.",
+  ) {
+    const actor = await this.requireActor(request);
+
+    try {
+      await this.#policy.requireEvent(actor.id, event, action);
     } catch (error) {
       if (error instanceof AuthorizationPolicyDeniedError) {
         forbidden(message);

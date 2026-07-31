@@ -111,8 +111,16 @@ standard error envelope.
 
 Public event reads use an explicit policy decision. Anonymous requests may read
 published public content only. Non-public event reads require
-`events.manage` in the owning FIR; future invited-FIR collaboration is added to
-that decision rather than inferred from browser claims or ICAO prefixes.
+`events.manage` in the owning or an invited participating FIR.
+
+Event-management guards receive canonical persisted ownership and
+participating-FIR relations loaded by the API. Content, occurrence, resource,
+routing, and roster operations permit matching owning or invited-FIR grants.
+Adding or removing participating FIRs, transferring ownership, cancelling, and
+deleting require the current owning-FIR grant. The current owner cannot be
+removed, and ownership can transfer only to a different FIR already
+participating in the event. These decisions are never based on browser claims
+or ICAO prefixes.
 
 Role, capability, and assignment writes use serializable transactions and
 produce an audit record in the same commit. Scope conflicts return

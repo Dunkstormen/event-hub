@@ -54,9 +54,50 @@ The reusable API guard distinguishes authentication from authorization:
 
 Event read policy is explicit even before event persistence and routes land.
 Published public content is readable anonymously. A non-public event is
-readable only by an authenticated actor with `events.manage` for its owning
-FIR. Issue #16 extends that decision with invited-FIR collaboration; issues
-#18 and #19 supply the event aggregate and route integration.
+readable only by an authenticated actor with `events.manage` for its owning or
+an invited participating FIR. Issues #18 and #19 supply the event aggregate
+and route integration.
+
+## Event collaboration policy
+
+The policy evaluator keeps event collaboration separate from ordinary FIR
+scope. A route supplies the event's persisted owning FIR and participating FIR
+relations; it must never construct those relations from request claims, airport
+prefixes, or other inferred ICAO values.
+
+| Event action | Owning FIR | Invited FIR | Other FIR |
+| --- | ---: | ---: | ---: |
+| View a manageable draft | Yes | Yes | No |
+| Edit content | Yes | Yes | No |
+| Manage occurrence overrides | Yes | Yes | No |
+| Manage resources | Yes | Yes | No |
+| Manage mandatory routings | Yes | Yes | No |
+| Configure and manage rosters | Yes | Yes | No |
+| Add a participating FIR | Yes | No | No |
+| Remove a participating FIR | Yes | No | No |
+| Transfer ownership | Yes | No | No |
+| Cancel the series | Yes | No | No |
+| Delete the series | Yes | No | No |
+
+Content, occurrence, resource, and routing decisions require `events.manage`
+in any current participating FIR. Roster decisions require `rosters.manage` in
+any current participating FIR. The owning FIR is always included in the
+decision even if a transport or persistence representation stores invited FIRs
+separately.
+
+Access administration and destructive lifecycle actions require
+`events.manage` in the current owning FIR. Removing the current owner is always
+denied. Ownership transfer is a separate action and is allowed only when the
+target is a different, already participating FIR. After a successful transfer,
+the former owner remains participating, so its coordinators retain the
+collaborative actions but lose owner-only actions immediately. Removing an
+invited FIR similarly removes its collaboration access on the next policy
+evaluation.
+
+This policy does not mutate an event. Issue #18 defines the aggregate
+invariants, issue #19 loads persisted event relations and applies the guards to
+CRUD operations, and issue #22 owns transactional, confirmed, audited
+participation and ownership changes.
 
 `system.administrator` is the administrator marker, while
 `authorization.manage` grants role-matrix management. Administrator safety
