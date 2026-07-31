@@ -13,6 +13,9 @@ import {
   AirportListResponseSchema,
   ApiErrorResponseSchema,
   DEFAULT_PAGE_SIZE,
+  CreateEventDraftSchema,
+  ManagedEventSchema,
+  UpdateEventDraftSchema,
   FirMembershipSchema,
   FirSchema,
   HealthResponseSchema,
@@ -277,6 +280,67 @@ describe("API contracts", () => {
           hasNextPage: false,
           nextCursor: null,
         },
+      }),
+    ).toBe(true);
+  });
+
+  it("defines versioned event-management requests and responses", () => {
+    expect(
+      Value.Check(CreateEventDraftSchema, {
+        name: "Cross the Pond Nordic",
+        shortDescription: "An evening of Nordic traffic.",
+        description: "Fly between participating Nordic airports.",
+        rosteringType: "open-interest",
+        localStart: "2026-08-15T18:00:00",
+        localEnd: "2026-08-15T22:00:00",
+        timeZone: "Europe/Copenhagen",
+        participatingFirIcaoCodes: ["EFIN"],
+        participatingAirportIcaoCodes: ["EKCH"],
+      }),
+    ).toBe(true);
+    expect(
+      Value.Check(UpdateEventDraftSchema, { expectedVersion: 2 }),
+    ).toBe(false);
+    expect(
+      Value.Check(UpdateEventDraftSchema, {
+        expectedVersion: 2,
+        name: "Updated event",
+      }),
+    ).toBe(true);
+    expect(
+      Value.Check(ManagedEventSchema, {
+        id: "event-1",
+        name: "Cross the Pond Nordic",
+        shortDescription: "An evening of Nordic traffic.",
+        description: "Fly between participating Nordic airports.",
+        bannerStorageKey: null,
+        rosteringType: "open-interest",
+        lifecycleState: "draft",
+        cancellationReason: null,
+        schedule: {
+          localStart: "2026-08-15T18:00:00",
+          localEnd: "2026-08-15T22:00:00",
+          timeZone: "Europe/Copenhagen",
+          startInstant: "2026-08-15T16:00:00Z",
+          endInstant: "2026-08-15T20:00:00Z",
+        },
+        ownerFir: {
+          icaoCode: "EKDK",
+          name: "Copenhagen FIR",
+          active: true,
+        },
+        participatingFirs: [],
+        participatingAirports: [],
+        createdBy: { id: "user-1", cid: "10000001" },
+        managementRole: "owner",
+        permissions: {
+          edit: true,
+          transferOwnership: true,
+          delete: true,
+        },
+        version: 1,
+        createdAt: "2026-07-31T12:00:00.000Z",
+        updatedAt: "2026-07-31T12:00:00.000Z",
       }),
     ).toBe(true);
   });

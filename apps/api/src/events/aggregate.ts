@@ -14,7 +14,7 @@ import { validateEventSchedule } from "./schedule.js";
 const maximumTransactionAttempts = 4;
 const icaoCodePattern = /^[A-Z]{4}$/u;
 
-const eventAggregateInclude = {
+export const eventAggregateInclude = {
   ownerFir: true,
   createdBy: {
     select: { id: true, cid: true },
@@ -24,7 +24,11 @@ const eventAggregateInclude = {
     orderBy: { fir: { icaoCode: "asc" as const } },
   },
   participatingAirports: {
-    include: { airport: true },
+    include: {
+      airport: {
+        include: { fir: true },
+      },
+    },
     orderBy: { airport: { icaoCode: "asc" as const } },
   },
 } as const;
@@ -65,6 +69,13 @@ export class EventAggregateDeniedError extends EventAggregateError {
   }
 }
 
+export class EventAggregateConflictError extends EventAggregateError {
+  constructor(message: string) {
+    super(message);
+    this.name = "EventAggregateConflictError";
+  }
+}
+
 export class EventAggregateNotFoundError extends EventAggregateError {
   constructor(message = "Event was not found.") {
     super(message);
@@ -81,6 +92,7 @@ export type EventAggregateService = Readonly<{
     actorUserId: string,
     eventId: string,
     targetFirIcaoCodeInput: string,
+    expectedVersion?: number,
   ): Promise<EventAggregateRecord>;
   cancelPublished(
     actorUserId: string,
@@ -207,11 +219,13 @@ function eventAuditState(event: {
   lifecycleState: string;
   ownerFir: { icaoCode: string };
   cancellationReason: string | null;
+  version: number;
 }) {
   return {
     lifecycleState: event.lifecycleState,
     ownerFirIcaoCode: event.ownerFir.icaoCode,
     cancellationReason: event.cancellationReason,
+    version: event.version,
   };
 }
 
@@ -349,6 +363,7 @@ export function createEventAggregate(
             lifecycleState: "DRAFT",
             ownerFirIcaoCode,
             cancellationReason: null,
+            version: 1,
           },
         });
 
@@ -363,6 +378,7 @@ export function createEventAggregate(
       actorUserId: string,
       eventId: string,
       targetFirIcaoCodeInput: string,
+      expectedVersion?: number,
     ) {
       const targetFirIcaoCode = normalizeIcaoCode(
         targetFirIcaoCodeInput,
@@ -385,6 +401,15 @@ export function createEventAggregate(
           event.ownerFir.icaoCode,
         );
 
+        if (
+          expectedVersion !== undefined &&
+          event.version !== expectedVersion
+        ) {
+          throw new EventAggregateConflictError(
+            "The event changed after it was loaded.",
+          );
+        }
+
         if (event.ownerFir.icaoCode === targetFirIcaoCode) {
           throw new EventAggregateError(
             "Target FIR already owns this event.",
@@ -402,9 +427,22 @@ export function createEventAggregate(
           );
         }
 
-        const updated = await transaction.event.update({
+        const transfer = await transaction.event.updateMany({
+          where: { id: event.id, version: event.version },
+          data: {
+            ownerFirId: targetParticipation.firId,
+            version: { increment: 1 },
+          },
+        });
+
+        if (transfer.count !== 1) {
+          throw new EventAggregateConflictError(
+            "The event changed during ownership transfer.",
+          );
+        }
+
+        const updated = await transaction.event.findUniqueOrThrow({
           where: { id: event.id },
-          data: { ownerFirId: targetParticipation.firId },
           include: eventAggregateInclude,
         });
 
@@ -460,6 +498,7 @@ export function createEventAggregate(
           data: {
             lifecycleState: "CANCELLED",
             cancellationReason,
+            version: { increment: 1 },
           },
           include: eventAggregateInclude,
         });

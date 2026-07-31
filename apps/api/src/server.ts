@@ -28,6 +28,7 @@ import type { ControllerEligibilityProvider } from "./controller-eligibility/pro
 import { ControllerEligibilityScheduler } from "./controller-eligibility/scheduler.js";
 import { ControllerEligibilitySynchronization } from "./controller-eligibility/synchronization.js";
 import { VateudEligibilityProvider } from "./controller-eligibility/vateud-provider.js";
+import { createEventManagement } from "./events/management.js";
 import { createReferenceDataRepository } from "./reference-data/repository.js";
 
 try {
@@ -106,6 +107,7 @@ const app = buildApp({
       database,
       controllerEligibilitySynchronization,
     ),
+  eventManagement: createEventManagement(database),
   firMembershipAdministration:
     createFirMembershipAdministration(database),
   logger: true,

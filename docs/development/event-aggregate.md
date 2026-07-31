@@ -18,6 +18,29 @@ than updating ownership or cancellation columns directly.
 Participating airports use their canonical `Airport` relation. Event code must
 not infer an airport's FIR from an ICAO prefix.
 
+## Management API
+
+Authenticated event coordinators use these contract-validated routes:
+
+- `POST /v1/firs/{firIcaoCode}/events` creates a draft whose owner is the
+  authorized FIR in the route, never an owner supplied in the request body.
+- `GET /v1/events/manageable` lists events visible through the coordinator's
+  owning or participating FIR grants.
+- `GET /v1/events/{eventId}` returns a manageable event with the caller's
+  owner or collaborator role and allowed operations.
+- `PATCH /v1/events/{eventId}` edits draft content for an owning or invited
+  FIR coordinator.
+- `POST /v1/events/{eventId}/ownership-transfer` transfers ownership from the
+  current owner to an existing active participant.
+- `DELETE /v1/events/{eventId}` permanently deletes a draft for its current
+  owner. Non-draft lifecycle deletion remains governed by issue #23.
+
+Every update, transfer, and deletion supplies `expectedVersion`. The API
+increments `events.version` on successful writes and returns `409 CONFLICT`
+when the persisted version has moved, preventing a stale editor from silently
+overwriting another coordinator's change. Management responses use
+`Cache-Control: no-store`.
+
 ## Lifecycle and cancellation
 
 MySQL enums constrain event lifecycle and rostering values. The initial

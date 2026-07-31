@@ -42,6 +42,8 @@ import { registerFirMembershipAdministrationRoutes } from "./authorization/fir-m
 import type { ControllerEligibilityAdministration } from "./controller-eligibility/administration.js";
 import { registerControllerEligibilityRoutes } from "./controller-eligibility/routes.js";
 import { registerErrorHandlers } from "./errors.js";
+import type { EventManagement } from "./events/management.js";
+import { registerEventManagementRoutes } from "./events/routes.js";
 import {
   emptyReferenceDataRepository,
   type ReferenceDataRepository,
@@ -54,6 +56,7 @@ type BuildAppOptions = Pick<FastifyServerOptions, "logger"> & {
   authorizationPolicy?: AuthorizationPolicy | null;
   authorizationSessions?: AuthorizationSessions | null;
   controllerEligibilityAdministration?: ControllerEligibilityAdministration | null;
+  eventManagement?: EventManagement | null;
   firMembershipAdministration?: FirMembershipAdministration | null;
   referenceDataRepository?: ReferenceDataRepository;
   sessionConfiguration?: SessionConfiguration;
@@ -69,6 +72,7 @@ export function buildApp({
   authorizationPolicy = null,
   authorizationSessions = null,
   controllerEligibilityAdministration = null,
+  eventManagement = null,
   firMembershipAdministration = null,
   logger = false,
   referenceDataRepository = emptyReferenceDataRepository,
@@ -154,6 +158,13 @@ export function buildApp({
     registerControllerEligibilityRoutes(
       app,
       controllerEligibilityAdministration,
+      authorizationGuard,
+    );
+  }
+  if (eventManagement !== null && authorizationGuard !== null) {
+    registerEventManagementRoutes(
+      app,
+      eventManagement,
       authorizationGuard,
     );
   }

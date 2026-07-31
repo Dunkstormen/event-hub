@@ -154,6 +154,7 @@ model Event {
   timeZone              String              @map("time_zone") @db.VarChar(64)
   ownerFirId            String              @map("owner_fir_id") @db.VarChar(30)
   createdByUserId       String              @map("created_by_user_id") @db.VarChar(30)
+  version               Int                 @default(1) @db.UnsignedInt
   ownerFir              Fir                 @relation("EventOwnerFir", fields: [ownerFirId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   createdBy             User                @relation("EventCreator", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   participatingFirs     EventFir[]

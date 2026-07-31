@@ -5,6 +5,7 @@ export * from "./authorization.js";
 export * from "./controller-eligibility.js";
 export * from "./fir-memberships.js";
 export * from "./errors.js";
+export * from "./events.js";
 export * from "./health.js";
 export * from "./pagination.js";
 export * from "./reference-data.js";
