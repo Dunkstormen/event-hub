@@ -305,6 +305,8 @@ describe("API contracts", () => {
       Value.Check(UpdateEventDraftSchema, {
         expectedVersion: 2,
         name: "Updated event",
+        participatingFirIcaoCodes: ["EKDK", "EFIN"],
+        participatingAirportIcaoCodes: ["EKCH", "EFHK"],
       }),
     ).toBe(true);
     expect(

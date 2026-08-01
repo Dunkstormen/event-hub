@@ -56,9 +56,20 @@ export type UpdateEventDraftInput = Readonly<{
   localStart?: string;
   localEnd?: string;
   timeZone?: string;
+  participatingFirIcaoCodes?: readonly string[];
+  participatingAirportIcaoCodes?: readonly string[];
+}>;
+
+export type EventManagementContextRecord = Readonly<{
+  ownerFirs: readonly Readonly<{
+    icaoCode: string;
+    name: string;
+    active: boolean;
+  }>[];
 }>;
 
 export type EventManagement = Readonly<{
+  getContext(actorUserId: string): Promise<EventManagementContextRecord>;
   createDraft(
     actorUserId: string,
     input: CreateEventDraftInput,
@@ -121,6 +132,17 @@ function normalizedBannerStorageKey(value: string | null) {
   return normalized;
 }
 
+function normalizeIcaoCodes(values: readonly string[], label: string) {
+  const normalized = values.map((value) => value.trim().toUpperCase());
+  const invalid = normalized.find((value) => !/^[A-Z]{4}$/u.test(value));
+
+  if (invalid !== undefined) {
+    throw new EventAggregateError(`${label} must be a four-letter ICAO code.`);
+  }
+
+  return [...new Set(normalized)];
+}
+
 function collaborationTarget(event: EventAggregateRecord) {
   return {
     owningFirIcaoCode: event.ownerFir.icaoCode,
@@ -162,6 +184,12 @@ function eventAuditState(event: EventAggregateRecord) {
     localEnd: event.localEnd,
     timeZone: event.timeZone,
     ownerFirIcaoCode: event.ownerFir.icaoCode,
+    participatingFirIcaoCodes: event.participatingFirs.map(
+      ({ fir }) => fir.icaoCode,
+    ),
+    participatingAirportIcaoCodes: event.participatingAirports.map(
+      ({ airport }) => airport.icaoCode,
+    ),
     version: event.version,
   };
 }
@@ -251,6 +279,34 @@ export function createEventManagement(
   const aggregate = createEventAggregate(database);
 
   return {
+    async getContext(actorUserId) {
+      const authorization = await requireAuthorization(database, actorUserId);
+      const globallyAuthorized = hasGlobalCapability(
+        authorization,
+        EVENTS_MANAGE_CAPABILITY,
+      );
+      const firIcaoCodes = authorization.firCapabilities
+        .filter(({ capabilityKeys }) =>
+          capabilityKeys.includes(EVENTS_MANAGE_CAPABILITY),
+        )
+        .map(({ firIcaoCode }) => firIcaoCode);
+
+      if (!globallyAuthorized && firIcaoCodes.length === 0) {
+        throw new EventAggregateDeniedError();
+      }
+
+      const ownerFirs = await database.fir.findMany({
+        where: {
+          active: true,
+          ...(globallyAuthorized ? {} : { icaoCode: { in: firIcaoCodes } }),
+        },
+        select: { icaoCode: true, name: true, active: true },
+        orderBy: { icaoCode: "asc" },
+      });
+
+      return { ownerFirs };
+    },
+
     async createDraft(actorUserId, input) {
       const event = await aggregate.createDraft(actorUserId, input);
       const authorization = await requireAuthorization(database, actorUserId);
@@ -356,6 +412,97 @@ export function createEventManagement(
           );
         }
 
+        const currentFirIcaoCodes = event.participatingFirs.map(
+          ({ fir }) => fir.icaoCode,
+        );
+        const participatingFirIcaoCodes =
+          input.participatingFirIcaoCodes === undefined
+            ? currentFirIcaoCodes
+            : [
+                ...new Set([
+                  event.ownerFir.icaoCode,
+                  ...normalizeIcaoCodes(
+                    input.participatingFirIcaoCodes,
+                    "Participating FIR",
+                  ),
+                ]),
+              ];
+        const currentAirportIcaoCodes = event.participatingAirports.map(
+          ({ airport }) => airport.icaoCode,
+        );
+        const participatingAirportIcaoCodes =
+          input.participatingAirportIcaoCodes === undefined
+            ? currentAirportIcaoCodes
+            : normalizeIcaoCodes(
+                input.participatingAirportIcaoCodes,
+                "Participating airport",
+              );
+        const currentFirSet = new Set(currentFirIcaoCodes);
+        const nextFirSet = new Set(participatingFirIcaoCodes);
+        const addedFirIcaoCodes = participatingFirIcaoCodes.filter(
+          (icaoCode) => !currentFirSet.has(icaoCode),
+        );
+        const removedFirIcaoCodes = currentFirIcaoCodes.filter(
+          (icaoCode) => !nextFirSet.has(icaoCode),
+        );
+
+        if (addedFirIcaoCodes.length > 0) {
+          await requireCollaboration(
+            transaction,
+            actorUserId,
+            event,
+            { kind: "add-participating-fir" },
+          );
+        }
+        for (const targetFirIcaoCode of removedFirIcaoCodes) {
+          await requireCollaboration(
+            transaction,
+            actorUserId,
+            event,
+            { kind: "remove-participating-fir", targetFirIcaoCode },
+          );
+        }
+
+        const [participatingFirs, participatingAirports] = await Promise.all([
+          transaction.fir.findMany({
+            where: {
+              active: true,
+              icaoCode: { in: participatingFirIcaoCodes },
+            },
+            select: { id: true, icaoCode: true },
+          }),
+          transaction.airport.findMany({
+            where: {
+              active: true,
+              icaoCode: { in: participatingAirportIcaoCodes },
+            },
+            select: { id: true, icaoCode: true },
+          }),
+        ]);
+        const foundFirIcaoCodes = new Set(
+          participatingFirs.map(({ icaoCode }) => icaoCode),
+        );
+        const missingFirIcaoCodes = participatingFirIcaoCodes.filter(
+          (icaoCode) => !foundFirIcaoCodes.has(icaoCode),
+        );
+        const foundAirportIcaoCodes = new Set(
+          participatingAirports.map(({ icaoCode }) => icaoCode),
+        );
+        const missingAirportIcaoCodes = participatingAirportIcaoCodes.filter(
+          (icaoCode) => !foundAirportIcaoCodes.has(icaoCode),
+        );
+
+        if (missingFirIcaoCodes.length > 0) {
+          throw new EventAggregateNotFoundError(
+            `Active participating FIRs were not found: ${missingFirIcaoCodes.join(", ")}.`,
+          );
+        }
+        if (missingAirportIcaoCodes.length > 0) {
+          throw new EventAggregateNotFoundError(
+            `Active participating airports were not found: ${missingAirportIcaoCodes.join(", ")}.`,
+          );
+        }
+
         const schedule = validateEventSchedule({
           localStart: input.localStart ?? event.localStart,
           localEnd: input.localEnd ?? event.localEnd,
@@ -406,6 +553,29 @@ export function createEventManagement(
           throw new EventAggregateConflictError(
             "The event changed while it was being updated.",
           );
+        }
+
+        if (input.participatingFirIcaoCodes !== undefined) {
+          await transaction.eventFir.deleteMany({ where: { eventId: event.id } });
+          await transaction.eventFir.createMany({
+            data: participatingFirs.map(({ id: firId }) => ({
+              eventId: event.id,
+              firId,
+            })),
+          });
+        }
+        if (input.participatingAirportIcaoCodes !== undefined) {
+          await transaction.eventAirport.deleteMany({
+            where: { eventId: event.id },
+          });
+          if (participatingAirports.length > 0) {
+            await transaction.eventAirport.createMany({
+              data: participatingAirports.map(({ id: airportId }) => ({
+                eventId: event.id,
+                airportId,
+              })),
+            });
+          }
         }
 
         const updated = await findEvent(transaction, event.id);

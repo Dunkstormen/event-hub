@@ -84,6 +84,28 @@ export const EventScheduleSchema = Type.Object(
 
 export type EventSchedule = Static<typeof EventScheduleSchema>;
 
+export const EventScheduleInputSchema = Type.Object(
+  {
+    localStart: LocalDateTimeSchema,
+    localEnd: LocalDateTimeSchema,
+    timeZone: TimeZoneSchema,
+  },
+  { additionalProperties: false },
+);
+
+export type EventScheduleInput = Static<typeof EventScheduleInputSchema>;
+
+export const EventManagementContextSchema = Type.Object(
+  {
+    ownerFirs: Type.Array(FirSchema),
+  },
+  { additionalProperties: false },
+);
+
+export type EventManagementContext = Static<
+  typeof EventManagementContextSchema
+>;
+
 export const EventPermissionsSchema = Type.Object(
   {
     edit: Type.Boolean(),
@@ -201,6 +223,12 @@ export const UpdateEventDraftSchema = Type.Object(
     localStart: Type.Optional(LocalDateTimeSchema),
     localEnd: Type.Optional(LocalDateTimeSchema),
     timeZone: Type.Optional(TimeZoneSchema),
+    participatingFirIcaoCodes: Type.Optional(
+      Type.Array(IcaoCodeSchema, { uniqueItems: true, maxItems: 20 }),
+    ),
+    participatingAirportIcaoCodes: Type.Optional(
+      Type.Array(IcaoCodeSchema, { uniqueItems: true, maxItems: 100 }),
+    ),
   },
   { additionalProperties: false, minProperties: 2 },
 );

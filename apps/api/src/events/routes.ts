@@ -7,7 +7,10 @@ import {
   CreateEventDraftSchema,
   DEFAULT_PAGE_SIZE,
   DeleteEventQuerySchema,
+  EventManagementContextSchema,
   EventParamsSchema,
+  EventScheduleInputSchema,
+  EventScheduleSchema,
   FirEventParamsSchema,
   ManageableEventsQuerySchema,
   ManageableEventsResponseSchema,
@@ -16,6 +19,7 @@ import {
   UpdateEventDraftSchema,
   type CreateEventDraft,
   type DeleteEventQuery,
+  type EventScheduleInput,
   type EventParams,
   type FirEventParams,
   type ManageableEventsQuery,
@@ -283,6 +287,52 @@ export function registerEventManagementRoutes(
                 : null,
           },
         };
+      } catch (error) {
+        translateEventError(error);
+      }
+    },
+  );
+
+  app.get(
+    `${API_PREFIX}/events/management-context`,
+    {
+      schema: {
+        response: {
+          200: EventManagementContextSchema,
+          ...API_ERROR_RESPONSE_SCHEMAS,
+        },
+      },
+    },
+    async (request, reply) => {
+      reply.header("Cache-Control", "no-store");
+      const actor = await guard.requireActor(request);
+
+      try {
+        return await management.getContext(actor.id);
+      } catch (error) {
+        translateEventError(error);
+      }
+    },
+  );
+
+  app.post<{ Body: EventScheduleInput }>(
+    `${API_PREFIX}/events/schedule-preview`,
+    {
+      schema: {
+        body: EventScheduleInputSchema,
+        response: {
+          200: EventScheduleSchema,
+          ...API_ERROR_RESPONSE_SCHEMAS,
+        },
+      },
+    },
+    async (request, reply) => {
+      reply.header("Cache-Control", "no-store");
+      const actor = await guard.requireActor(request);
+
+      try {
+        await management.getContext(actor.id);
+        return validateEventSchedule(request.body);
       } catch (error) {
         translateEventError(error);
       }
