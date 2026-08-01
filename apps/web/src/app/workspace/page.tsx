@@ -23,7 +23,6 @@ export default function WorkspacePage() {
         </div>
         <Link
           href="/workspace/events/new"
-          prefetch={false}
           className={buttonVariants({
             className: "w-full sm:w-auto",
             size: "lg",

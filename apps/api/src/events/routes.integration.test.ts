@@ -152,6 +152,26 @@ describe("event-management routes", () => {
       headers: headers("outsider"),
       payload: draftPayload,
     });
+    const managementContext = await app.inject({
+      method: "GET",
+      url: "/v1/events/management-context",
+      headers: headers("owner"),
+    });
+    const deniedContext = await app.inject({
+      method: "GET",
+      url: "/v1/events/management-context",
+      headers: headers("outsider"),
+    });
+    const schedulePreview = await app.inject({
+      method: "POST",
+      url: "/v1/events/schedule-preview",
+      headers: headers("owner"),
+      payload: {
+        localStart: draftPayload.localStart,
+        localEnd: draftPayload.localEnd,
+        timeZone: draftPayload.timeZone,
+      },
+    });
     const created = await app.inject({
       method: "POST",
       url: "/v1/firs/EKDK/events",
@@ -181,6 +201,19 @@ describe("event-management routes", () => {
     });
 
     expect(unauthorizedCreation.statusCode).toBe(403);
+    expect(managementContext.json()).toEqual({
+      ownerFirs: [
+        { icaoCode: "EKDK", name: "Copenhagen FIR", active: true },
+      ],
+    });
+    expect(deniedContext.statusCode).toBe(403);
+    expect(schedulePreview.json()).toMatchObject({
+      localStart: draftPayload.localStart,
+      localEnd: draftPayload.localEnd,
+      timeZone: draftPayload.timeZone,
+      startInstant: "2026-08-15T16:00:00Z",
+      endInstant: "2026-08-15T20:00:00Z",
+    });
     expect(created.statusCode).toBe(201);
     expect(created.headers["cache-control"]).toBe("no-store");
     expect(created.json()).toMatchObject({
@@ -236,6 +269,25 @@ describe("event-management routes", () => {
         name: "Cross the Pond Nordic 2026",
       },
     });
+    const collaboratorParticipationUpdate = await app.inject({
+      method: "PATCH",
+      url: `/v1/events/${event.id}`,
+      headers: headers("invited"),
+      payload: {
+        expectedVersion: 2,
+        participatingFirIcaoCodes: ["EKDK", "EFIN", "ENOR"],
+      },
+    });
+    const ownerParticipationUpdate = await app.inject({
+      method: "PATCH",
+      url: `/v1/events/${event.id}`,
+      headers: headers("owner"),
+      payload: {
+        expectedVersion: 2,
+        participatingFirIcaoCodes: ["EKDK", "EFIN", "ENOR"],
+        participatingAirportIcaoCodes: ["EKCH"],
+      },
+    });
     const staleUpdate = await app.inject({
       method: "PATCH",
       url: `/v1/events/${event.id}`,
@@ -247,7 +299,7 @@ describe("event-management routes", () => {
       url: `/v1/events/${event.id}`,
       headers: headers("owner"),
       payload: {
-        expectedVersion: 2,
+        expectedVersion: 3,
         localEnd: "2026-08-15T17:00:00",
       },
     });
@@ -255,13 +307,13 @@ describe("event-management routes", () => {
       method: "POST",
       url: `/v1/events/${event.id}/ownership-transfer`,
       headers: headers("invited"),
-      payload: { expectedVersion: 2, targetFirIcaoCode: "EFIN" },
+      payload: { expectedVersion: 3, targetFirIcaoCode: "EFIN" },
     });
     const transferred = await app.inject({
       method: "POST",
       url: `/v1/events/${event.id}/ownership-transfer`,
       headers: headers("owner"),
-      payload: { expectedVersion: 2, targetFirIcaoCode: "EFIN" },
+      payload: { expectedVersion: 3, targetFirIcaoCode: "EFIN" },
     });
 
     expect(updated.statusCode).toBe(200);
@@ -269,6 +321,16 @@ describe("event-management routes", () => {
       name: "Cross the Pond Nordic 2026",
       managementRole: "collaborator",
       version: 2,
+    });
+    expect(collaboratorParticipationUpdate.statusCode).toBe(403);
+    expect(ownerParticipationUpdate.json()).toMatchObject({
+      participatingFirs: [
+        { icaoCode: "EFIN" },
+        { icaoCode: "EKDK" },
+        { icaoCode: "ENOR" },
+      ],
+      participatingAirports: [{ icaoCode: "EKCH" }],
+      version: 3,
     });
     expect(staleUpdate.statusCode).toBe(409);
     expect(invalidSchedule.statusCode).toBe(400);
@@ -279,9 +341,10 @@ describe("event-management routes", () => {
       participatingFirs: [
         { icaoCode: "EFIN" },
         { icaoCode: "EKDK" },
+        { icaoCode: "ENOR" },
       ],
       managementRole: "collaborator",
-      version: 3,
+      version: 4,
     });
   });
 
